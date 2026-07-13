@@ -144,6 +144,36 @@ function Index() {
   const [selected, setSelected] = useState<Lote | null>(null);
   const [total, setTotal] = useState(150);
   const [perQuadra, setPerQuadra] = useState(15);
+  const [sales, setSales] = useState<Record<string, Sale>>({});
+
+  const lotes = useMemo(() => generateLotes(total, perQuadra), [total, perQuadra]);
+
+  const currentSale = selected ? sales[selected.id] ?? defaultSale(selected) : null;
+
+  const updateSale = (id: string, patch: Partial<Sale>) => {
+    setSales((prev) => {
+      const base = prev[id] ?? (selected ? defaultSale(selected) : null);
+      if (!base) return prev;
+      const next: Sale = { ...base, ...patch };
+      if (patch.parcelas !== undefined && patch.parcelas !== base.parcelas) {
+        const arr = Array(patch.parcelas).fill(null) as (number | null)[];
+        for (let i = 0; i < Math.min(arr.length, base.pagamentos.length); i++) arr[i] = base.pagamentos[i];
+        next.pagamentos = arr;
+      }
+      return { ...prev, [id]: next };
+    });
+  };
+
+  const updatePagamento = (id: string, idx: number, valor: number | null) => {
+    setSales((prev) => {
+      const base = prev[id] ?? (selected ? defaultSale(selected) : null);
+      if (!base) return prev;
+      const pagamentos = [...base.pagamentos];
+      pagamentos[idx] = valor;
+      return { ...prev, [id]: { ...base, pagamentos } };
+    });
+  };
+
 
   const lotes = useMemo(() => generateLotes(total, perQuadra), [total, perQuadra]);
 
