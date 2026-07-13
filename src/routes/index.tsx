@@ -3,8 +3,26 @@ import { useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+
+const ANNUAL_RATE = 0.05;
+const MONTHLY_RATE = ANNUAL_RATE / 12;
+
+// PMT (Price/francês): PV * i / (1 - (1+i)^-n)
+function calcParcela(financiado: number, n: number): number {
+  if (financiado <= 0 || n <= 0) return 0;
+  const i = MONTHLY_RATE;
+  return (financiado * i) / (1 - Math.pow(1 + i, -n));
+}
+
+type Sale = {
+  cliente: string;
+  entrada: number;
+  parcelas: number;
+  pagamentos: (number | null)[];
+};
 
 export const Route = createFileRoute("/")({
   head: () => ({
