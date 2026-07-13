@@ -115,6 +115,10 @@ function Index() {
   const [filters, setFilters] = useState<Set<Status>>(new Set(STATUS_ORDER));
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Lote | null>(null);
+  const [total, setTotal] = useState(150);
+  const [perQuadra, setPerQuadra] = useState(15);
+
+  const lotes = useMemo(() => generateLotes(total, perQuadra), [total, perQuadra]);
 
   const toggle = (s: Status) => {
     const next = new Set(filters);
