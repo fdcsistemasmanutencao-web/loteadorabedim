@@ -312,46 +312,152 @@ function Index() {
       </main>
 
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <DialogContent className="sm:max-w-md">
-          {selected && (
-            <>
-              <DialogHeader>
-                <div className="flex items-center justify-between gap-3">
-                  <DialogTitle className="text-xl">Lote {selected.id}</DialogTitle>
-                  <Badge variant="outline" className={cn("border", STATUS_META[selected.status].badge)}>
-                    <span className={cn("mr-1.5 h-2 w-2 rounded-full", STATUS_META[selected.status].dot)} />
-                    {STATUS_META[selected.status].label}
-                  </Badge>
-                </div>
-                <DialogDescription>Quadra {selected.quadra} · Lote {selected.numero}</DialogDescription>
-              </DialogHeader>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          {selected && currentSale && (() => {
+            const financiado = Math.max(0, selected.preco - currentSale.entrada);
+            const parcelaEsperada = calcParcela(financiado, currentSale.parcelas);
+            const totalPago = currentSale.pagamentos.reduce<number>((a, v) => a + (v ?? 0), 0);
+            const totalContrato = currentSale.entrada + parcelaEsperada * currentSale.parcelas;
+            return (
+              <>
+                <DialogHeader>
+                  <div className="flex items-center justify-between gap-3">
+                    <DialogTitle className="text-xl">Lote {selected.id}</DialogTitle>
+                    <Badge variant="outline" className={cn("border", STATUS_META[selected.status].badge)}>
+                      <span className={cn("mr-1.5 h-2 w-2 rounded-full", STATUS_META[selected.status].dot)} />
+                      {STATUS_META[selected.status].label}
+                    </Badge>
+                  </div>
+                  <DialogDescription>
+                    Quadra {selected.quadra} · Lote {selected.numero} · {selected.area} m² · Valor {brl(selected.preco)}
+                  </DialogDescription>
+                </DialogHeader>
 
-              <dl className="mt-2 grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <dt className="text-muted-foreground">Área</dt>
-                  <dd className="font-medium">{selected.area} m²</dd>
+                {/* Dados da venda financiada */}
+                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <Label htmlFor="cliente">Cliente comprador</Label>
+                    <Input
+                      id="cliente"
+                      value={currentSale.cliente}
+                      onChange={(e) => updateSale(selected.id, { cliente: e.target.value })}
+                      placeholder="Nome do comprador"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="entrada">Valor de entrada</Label>
+                    <Input
+                      id="entrada"
+                      type="number"
+                      min={0}
+                      max={selected.preco}
+                      value={currentSale.entrada}
+                      onChange={(e) => updateSale(selected.id, { entrada: Math.max(0, Math.min(selected.preco, Number(e.target.value) || 0)) })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="parcelas">Nº de parcelas</Label>
+                    <Input
+                      id="parcelas"
+                      type="number"
+                      min={1}
+                      max={360}
+                      value={currentSale.parcelas}
+                      onChange={(e) => updateSale(selected.id, { parcelas: Math.max(1, Math.min(360, Number(e.target.value) || 1)) })}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <dt className="text-muted-foreground">Valor</dt>
-                  <dd className="font-medium">{brl(selected.preco)}</dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">Cliente</dt>
-                  <dd className="font-medium">{selected.cliente ?? "—"}</dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">Corretor</dt>
-                  <dd className="font-medium">{selected.corretor ?? "—"}</dd>
-                </div>
-              </dl>
 
-              <div className="mt-4 flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setSelected(null)}>Fechar</Button>
-                <Button>Ver contrato</Button>
-              </div>
-            </>
-          )}
+                {/* Resumo financeiro */}
+                <div className="mt-4 grid grid-cols-2 gap-3 rounded-lg border bg-muted/40 p-3 text-sm sm:grid-cols-4">
+                  <div>
+                    <div className="text-muted-foreground">Financiado</div>
+                    <div className="font-semibold">{brl(financiado)}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">Parcela esperada</div>
+                    <div className="font-semibold">{brl(parcelaEsperada)}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">Juros a.a.</div>
+                    <div className="font-semibold">5,00%</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">Total contrato</div>
+                    <div className="font-semibold">{brl(totalContrato)}</div>
+                  </div>
+                </div>
+
+                {/* Parcelas */}
+                <div className="mt-4">
+                  <div className="mb-2 flex items-center justify-between">
+                    <h3 className="text-sm font-semibold">Parcelas</h3>
+                    <div className="text-xs text-muted-foreground">
+                      Pago: <span className="font-medium text-foreground">{brl(totalPago)}</span>
+                    </div>
+                  </div>
+                  <div className="max-h-72 overflow-y-auto rounded-md border">
+                    <table className="w-full text-sm">
+                      <thead className="sticky top-0 bg-muted/60 text-xs uppercase tracking-wide text-muted-foreground">
+                        <tr>
+                          <th className="px-3 py-2 text-left">#</th>
+                          <th className="px-3 py-2 text-right">Esperado</th>
+                          <th className="px-3 py-2 text-right">Pago</th>
+                          <th className="px-3 py-2 text-right">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {currentSale.pagamentos.map((pago, i) => {
+                          const below = pago !== null && pago < parcelaEsperada - 0.005;
+                          const above = pago !== null && pago >= parcelaEsperada - 0.005;
+                          return (
+                            <tr key={i} className="border-t">
+                              <td className="px-3 py-1.5 text-muted-foreground">{i + 1}</td>
+                              <td className="px-3 py-1.5 text-right tabular-nums">{brl(parcelaEsperada)}</td>
+                              <td className="px-3 py-1.5 text-right">
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  step="0.01"
+                                  value={pago ?? ""}
+                                  onChange={(e) => {
+                                    const v = e.target.value;
+                                    updatePagamento(selected.id, i, v === "" ? null : Number(v));
+                                  }}
+                                  className={cn(
+                                    "ml-auto h-8 w-28 text-right tabular-nums",
+                                    below && "border-red-500 bg-red-500/10 text-red-700 focus-visible:ring-red-500 dark:text-red-300",
+                                    above && "border-emerald-500 bg-emerald-500/10 text-emerald-700 focus-visible:ring-emerald-500 dark:text-emerald-300",
+                                  )}
+                                  placeholder="—"
+                                />
+                              </td>
+                              <td className="px-3 py-1.5 text-right text-xs font-medium">
+                                {pago === null ? (
+                                  <span className="text-muted-foreground">pendente</span>
+                                ) : below ? (
+                                  <span className="text-red-600 dark:text-red-400">abaixo</span>
+                                ) : (
+                                  <span className="text-emerald-600 dark:text-emerald-400">ok</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setSelected(null)}>Fechar</Button>
+                  <Button onClick={() => setSelected(null)}>Salvar</Button>
+                </div>
+              </>
+            );
+          })()}
         </DialogContent>
+
       </Dialog>
     </div>
   );
