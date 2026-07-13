@@ -62,9 +62,17 @@ const STATUS_META: Record<Status, { label: string; dot: string; fill: string; ri
 
 const STATUS_ORDER: Status[] = ["disponivel", "reservado", "vendido", "cancelado"];
 
-// Mock data — quadras A-D, 12 lotes cada
-function generateLotes(): Lote[] {
-  const quadras = ["A", "B", "C", "D"];
+const QUADRA_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+function quadraName(i: number): string {
+  // A..Z, AA, AB...
+  if (i < 26) return QUADRA_LETTERS[i];
+  const first = QUADRA_LETTERS[Math.floor(i / 26) - 1];
+  const second = QUADRA_LETTERS[i % 26];
+  return `${first}${second}`;
+}
+
+function generateLotes(total: number, perQuadra: number): Lote[] {
   const statuses: Status[] = ["disponivel", "disponivel", "disponivel", "reservado", "vendido", "vendido", "cancelado"];
   const clientes = ["Maria Silva", "João Souza", "Ana Costa", "Carlos Lima", "Bruno Alves", "Paula Rocha"];
   const corretores = ["R. Mendes", "L. Ferreira", "T. Oliveira"];
@@ -74,28 +82,32 @@ function generateLotes(): Lote[] {
     seed = (seed * 9301 + 49297) % 233280;
     return seed / 233280;
   };
-  for (const q of quadras) {
-    for (let n = 1; n <= 12; n++) {
-      const status = statuses[Math.floor(rand() * statuses.length)];
-      const area = 200 + Math.floor(rand() * 250);
-      const preco = area * (350 + Math.floor(rand() * 200));
-      const isSold = status === "vendido" || status === "reservado";
-      out.push({
-        id: `${q}-${String(n).padStart(2, "0")}`,
-        quadra: q,
-        numero: n,
-        area,
-        preco,
-        status,
-        cliente: isSold ? clientes[Math.floor(rand() * clientes.length)] : undefined,
-        corretor: isSold ? corretores[Math.floor(rand() * corretores.length)] : undefined,
-      });
+  let qIdx = 0;
+  let nInQuadra = 0;
+  for (let i = 0; i < total; i++) {
+    if (nInQuadra >= perQuadra) {
+      qIdx++;
+      nInQuadra = 0;
     }
+    nInQuadra++;
+    const q = quadraName(qIdx);
+    const status = statuses[Math.floor(rand() * statuses.length)];
+    const area = 200 + Math.floor(rand() * 250);
+    const preco = area * (350 + Math.floor(rand() * 200));
+    const isSold = status === "vendido" || status === "reservado";
+    out.push({
+      id: `${q}-${String(nInQuadra).padStart(2, "0")}`,
+      quadra: q,
+      numero: nInQuadra,
+      area,
+      preco,
+      status,
+      cliente: isSold ? clientes[Math.floor(rand() * clientes.length)] : undefined,
+      corretor: isSold ? corretores[Math.floor(rand() * corretores.length)] : undefined,
+    });
   }
   return out;
 }
-
-const ALL_LOTES = generateLotes();
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
