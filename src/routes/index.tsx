@@ -174,9 +174,6 @@ function Index() {
     });
   };
 
-
-  const lotes = useMemo(() => generateLotes(total, perQuadra), [total, perQuadra]);
-
   const toggle = (s: Status) => {
     const next = new Set(filters);
     if (next.has(s)) next.delete(s);
