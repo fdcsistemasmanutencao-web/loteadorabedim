@@ -129,13 +129,13 @@ function Index() {
 
   const counts = useMemo(() => {
     const c: Record<Status, number> = { disponivel: 0, reservado: 0, vendido: 0, cancelado: 0 };
-    for (const l of ALL_LOTES) c[l.status]++;
+    for (const l of lotes) c[l.status]++;
     return c;
-  }, []);
+  }, [lotes]);
 
   const quadras = useMemo(() => {
     const grouped: Record<string, Lote[]> = {};
-    for (const l of ALL_LOTES) {
+    for (const l of lotes) {
       if (!filters.has(l.status)) continue;
       if (search) {
         const q = search.toLowerCase();
@@ -145,7 +145,7 @@ function Index() {
       (grouped[l.quadra] ||= []).push(l);
     }
     return grouped;
-  }, [filters, search]);
+  }, [lotes, filters, search]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
