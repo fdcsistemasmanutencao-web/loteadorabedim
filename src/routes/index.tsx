@@ -62,9 +62,17 @@ const STATUS_META: Record<Status, { label: string; dot: string; fill: string; ri
 
 const STATUS_ORDER: Status[] = ["disponivel", "reservado", "vendido", "cancelado"];
 
-// Mock data — quadras A-D, 12 lotes cada
-function generateLotes(): Lote[] {
-  const quadras = ["A", "B", "C", "D"];
+const QUADRA_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+function quadraName(i: number): string {
+  // A..Z, AA, AB...
+  if (i < 26) return QUADRA_LETTERS[i];
+  const first = QUADRA_LETTERS[Math.floor(i / 26) - 1];
+  const second = QUADRA_LETTERS[i % 26];
+  return `${first}${second}`;
+}
+
+function generateLotes(total: number, perQuadra: number): Lote[] {
   const statuses: Status[] = ["disponivel", "disponivel", "disponivel", "reservado", "vendido", "vendido", "cancelado"];
   const clientes = ["Maria Silva", "João Souza", "Ana Costa", "Carlos Lima", "Bruno Alves", "Paula Rocha"];
   const corretores = ["R. Mendes", "L. Ferreira", "T. Oliveira"];
@@ -74,28 +82,32 @@ function generateLotes(): Lote[] {
     seed = (seed * 9301 + 49297) % 233280;
     return seed / 233280;
   };
-  for (const q of quadras) {
-    for (let n = 1; n <= 12; n++) {
-      const status = statuses[Math.floor(rand() * statuses.length)];
-      const area = 200 + Math.floor(rand() * 250);
-      const preco = area * (350 + Math.floor(rand() * 200));
-      const isSold = status === "vendido" || status === "reservado";
-      out.push({
-        id: `${q}-${String(n).padStart(2, "0")}`,
-        quadra: q,
-        numero: n,
-        area,
-        preco,
-        status,
-        cliente: isSold ? clientes[Math.floor(rand() * clientes.length)] : undefined,
-        corretor: isSold ? corretores[Math.floor(rand() * corretores.length)] : undefined,
-      });
+  let qIdx = 0;
+  let nInQuadra = 0;
+  for (let i = 0; i < total; i++) {
+    if (nInQuadra >= perQuadra) {
+      qIdx++;
+      nInQuadra = 0;
     }
+    nInQuadra++;
+    const q = quadraName(qIdx);
+    const status = statuses[Math.floor(rand() * statuses.length)];
+    const area = 200 + Math.floor(rand() * 250);
+    const preco = area * (350 + Math.floor(rand() * 200));
+    const isSold = status === "vendido" || status === "reservado";
+    out.push({
+      id: `${q}-${String(nInQuadra).padStart(2, "0")}`,
+      quadra: q,
+      numero: nInQuadra,
+      area,
+      preco,
+      status,
+      cliente: isSold ? clientes[Math.floor(rand() * clientes.length)] : undefined,
+      corretor: isSold ? corretores[Math.floor(rand() * corretores.length)] : undefined,
+    });
   }
   return out;
 }
-
-const ALL_LOTES = generateLotes();
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
@@ -103,6 +115,10 @@ function Index() {
   const [filters, setFilters] = useState<Set<Status>>(new Set(STATUS_ORDER));
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Lote | null>(null);
+  const [total, setTotal] = useState(150);
+  const [perQuadra, setPerQuadra] = useState(15);
+
+  const lotes = useMemo(() => generateLotes(total, perQuadra), [total, perQuadra]);
 
   const toggle = (s: Status) => {
     const next = new Set(filters);
@@ -113,13 +129,13 @@ function Index() {
 
   const counts = useMemo(() => {
     const c: Record<Status, number> = { disponivel: 0, reservado: 0, vendido: 0, cancelado: 0 };
-    for (const l of ALL_LOTES) c[l.status]++;
+    for (const l of lotes) c[l.status]++;
     return c;
-  }, []);
+  }, [lotes]);
 
   const quadras = useMemo(() => {
     const grouped: Record<string, Lote[]> = {};
-    for (const l of ALL_LOTES) {
+    for (const l of lotes) {
       if (!filters.has(l.status)) continue;
       if (search) {
         const q = search.toLowerCase();
@@ -129,7 +145,7 @@ function Index() {
       (grouped[l.quadra] ||= []).push(l);
     }
     return grouped;
-  }, [filters, search]);
+  }, [lotes, filters, search]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -170,10 +186,36 @@ function Index() {
               </button>
             );
           })}
-          <div className="ml-auto text-sm text-muted-foreground">
-            Total: <span className="font-medium text-foreground">{ALL_LOTES.length}</span> lotes
+          <div className="ml-auto flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+            <label className="flex items-center gap-2">
+              <span>Total de lotes</span>
+              <Input
+                type="number"
+                min={1}
+                max={5000}
+                value={total}
+                onChange={(e) => setTotal(Math.max(1, Math.min(5000, Number(e.target.value) || 1)))}
+                className="h-8 w-24"
+              />
+            </label>
+            <label className="flex items-center gap-2">
+              <span>Lotes por quadra</span>
+              <Input
+                type="number"
+                min={1}
+                max={200}
+                value={perQuadra}
+                onChange={(e) => setPerQuadra(Math.max(1, Math.min(200, Number(e.target.value) || 1)))}
+                className="h-8 w-20"
+              />
+            </label>
+            <span>
+              <span className="font-medium text-foreground">{lotes.length}</span> lotes ·{" "}
+              <span className="font-medium text-foreground">{Object.keys(quadras).length || Math.ceil(total / perQuadra)}</span> quadras
+            </span>
           </div>
         </div>
+
 
         {/* Mapa por quadra */}
         <div className="space-y-6">
