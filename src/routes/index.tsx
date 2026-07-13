@@ -186,10 +186,36 @@ function Index() {
               </button>
             );
           })}
-          <div className="ml-auto text-sm text-muted-foreground">
-            Total: <span className="font-medium text-foreground">{ALL_LOTES.length}</span> lotes
+          <div className="ml-auto flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+            <label className="flex items-center gap-2">
+              <span>Total de lotes</span>
+              <Input
+                type="number"
+                min={1}
+                max={5000}
+                value={total}
+                onChange={(e) => setTotal(Math.max(1, Math.min(5000, Number(e.target.value) || 1)))}
+                className="h-8 w-24"
+              />
+            </label>
+            <label className="flex items-center gap-2">
+              <span>Lotes por quadra</span>
+              <Input
+                type="number"
+                min={1}
+                max={200}
+                value={perQuadra}
+                onChange={(e) => setPerQuadra(Math.max(1, Math.min(200, Number(e.target.value) || 1)))}
+                className="h-8 w-20"
+              />
+            </label>
+            <span>
+              <span className="font-medium text-foreground">{lotes.length}</span> lotes ·{" "}
+              <span className="font-medium text-foreground">{Object.keys(quadras).length || Math.ceil(total / perQuadra)}</span> quadras
+            </span>
           </div>
         </div>
+
 
         {/* Mapa por quadra */}
         <div className="space-y-6">
