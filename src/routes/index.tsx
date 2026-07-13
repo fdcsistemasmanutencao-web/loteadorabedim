@@ -127,7 +127,16 @@ function generateLotes(total: number, perQuadra: number): Lote[] {
   return out;
 }
 
-const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 2 });
+
+function defaultSale(l: Lote): Sale {
+  return {
+    cliente: l.cliente ?? "",
+    entrada: Math.round(l.preco * 0.2),
+    parcelas: 60,
+    pagamentos: Array(60).fill(null),
+  };
+}
 
 function Index() {
   const [filters, setFilters] = useState<Set<Status>>(new Set(STATUS_ORDER));
