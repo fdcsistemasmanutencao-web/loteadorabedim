@@ -370,9 +370,9 @@ function Index() {
             const live = lotes.find((l) => l.id === selected.id) ?? selected;
             const preco = live.preco;
             const financiado = Math.max(0, preco - currentSale.entrada);
-            const parcelaEsperada = calcParcela(financiado, currentSale.parcelas);
+            const parcelaBaseVal = parcelaBase(financiado, currentSale.parcelas);
             const totalPago = currentSale.pagamentos.reduce<number>((a, p) => a + (p.valor ?? 0), 0);
-            const totalContrato = currentSale.entrada + parcelaEsperada * currentSale.parcelas;
+            const totalContrato = currentSale.entrada + totalContratoCalc(financiado, currentSale.parcelas);
             return (
               <>
                 <DialogHeader>
