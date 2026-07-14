@@ -444,8 +444,8 @@ function Index() {
                     <div className="font-semibold">{brl(financiado)}</div>
                   </div>
                   <div>
-                    <div className="text-muted-foreground">Parcela esperada</div>
-                    <div className="font-semibold">{brl(parcelaEsperada)}</div>
+                    <div className="text-muted-foreground">Parcela base (1º ano)</div>
+                    <div className="font-semibold">{brl(parcelaBaseVal)}</div>
                   </div>
                   <div>
                     <div className="text-muted-foreground">Juros a.a.</div>
