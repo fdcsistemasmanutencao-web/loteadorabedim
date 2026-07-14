@@ -139,6 +139,24 @@ function defaultSale(l: Lote): Sale {
   };
 }
 
+const STORAGE_KEY = "loteadora:config:v1";
+type PersistedConfig = {
+  total: number;
+  perQuadra: number;
+  precoOverrides: Record<string, number>;
+  sales: Record<string, Sale>;
+};
+
+function loadConfig(): Partial<PersistedConfig> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as Partial<PersistedConfig>) : {};
+  } catch {
+    return {};
+  }
+}
+
 function Index() {
   const [filters, setFilters] = useState<Set<Status>>(new Set(STATUS_ORDER));
   const [search, setSearch] = useState("");
@@ -146,8 +164,29 @@ function Index() {
   const [total, setTotal] = useState(150);
   const [perQuadra, setPerQuadra] = useState(15);
   const [sales, setSales] = useState<Record<string, Sale>>({});
+  const [precoOverrides, setPrecoOverrides] = useState<Record<string, number>>({});
+  const [savedAt, setSavedAt] = useState<string | null>(null);
 
-  const lotes = useMemo(() => generateLotes(total, perQuadra), [total, perQuadra]);
+  // Carregar configuração salva
+  useEffect(() => {
+    const cfg = loadConfig();
+    if (cfg.total) setTotal(cfg.total);
+    if (cfg.perQuadra) setPerQuadra(cfg.perQuadra);
+    if (cfg.precoOverrides) setPrecoOverrides(cfg.precoOverrides);
+    if (cfg.sales) setSales(cfg.sales);
+  }, []);
+
+  const salvarConfig = () => {
+    const payload: PersistedConfig = { total, perQuadra, precoOverrides, sales };
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    setSavedAt(new Date().toLocaleTimeString("pt-BR"));
+  };
+
+  const lotesBase = useMemo(() => generateLotes(total, perQuadra), [total, perQuadra]);
+  const lotes = useMemo(
+    () => lotesBase.map((l) => (precoOverrides[l.id] != null ? { ...l, preco: precoOverrides[l.id] } : l)),
+    [lotesBase, precoOverrides],
+  );
 
   const currentSale = selected ? sales[selected.id] ?? defaultSale(selected) : null;
 
