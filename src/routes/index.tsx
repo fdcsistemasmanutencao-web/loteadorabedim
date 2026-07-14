@@ -307,6 +307,10 @@ function Index() {
               <span className="font-medium text-foreground">{lotes.length}</span> lotes ·{" "}
               <span className="font-medium text-foreground">{Object.keys(quadras).length || Math.ceil(total / perQuadra)}</span> quadras
             </span>
+            <Button size="sm" variant="outline" onClick={salvarConfig} className="h-8">
+              Salvar configuração
+            </Button>
+            {savedAt && <span className="text-xs">Salvo às {savedAt}</span>}
           </div>
         </div>
 
