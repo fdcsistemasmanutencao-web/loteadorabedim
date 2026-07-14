@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -139,6 +139,24 @@ function defaultSale(l: Lote): Sale {
   };
 }
 
+const STORAGE_KEY = "loteadora:config:v1";
+type PersistedConfig = {
+  total: number;
+  perQuadra: number;
+  precoOverrides: Record<string, number>;
+  sales: Record<string, Sale>;
+};
+
+function loadConfig(): Partial<PersistedConfig> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as Partial<PersistedConfig>) : {};
+  } catch {
+    return {};
+  }
+}
+
 function Index() {
   const [filters, setFilters] = useState<Set<Status>>(new Set(STATUS_ORDER));
   const [search, setSearch] = useState("");
@@ -146,8 +164,29 @@ function Index() {
   const [total, setTotal] = useState(150);
   const [perQuadra, setPerQuadra] = useState(15);
   const [sales, setSales] = useState<Record<string, Sale>>({});
+  const [precoOverrides, setPrecoOverrides] = useState<Record<string, number>>({});
+  const [savedAt, setSavedAt] = useState<string | null>(null);
 
-  const lotes = useMemo(() => generateLotes(total, perQuadra), [total, perQuadra]);
+  // Carregar configuração salva
+  useEffect(() => {
+    const cfg = loadConfig();
+    if (cfg.total) setTotal(cfg.total);
+    if (cfg.perQuadra) setPerQuadra(cfg.perQuadra);
+    if (cfg.precoOverrides) setPrecoOverrides(cfg.precoOverrides);
+    if (cfg.sales) setSales(cfg.sales);
+  }, []);
+
+  const salvarConfig = () => {
+    const payload: PersistedConfig = { total, perQuadra, precoOverrides, sales };
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    setSavedAt(new Date().toLocaleTimeString("pt-BR"));
+  };
+
+  const lotesBase = useMemo(() => generateLotes(total, perQuadra), [total, perQuadra]);
+  const lotes = useMemo(
+    () => lotesBase.map((l) => (precoOverrides[l.id] != null ? { ...l, preco: precoOverrides[l.id] } : l)),
+    [lotesBase, precoOverrides],
+  );
 
   const currentSale = selected ? sales[selected.id] ?? defaultSale(selected) : null;
 
@@ -268,6 +307,10 @@ function Index() {
               <span className="font-medium text-foreground">{lotes.length}</span> lotes ·{" "}
               <span className="font-medium text-foreground">{Object.keys(quadras).length || Math.ceil(total / perQuadra)}</span> quadras
             </span>
+            <Button size="sm" variant="outline" onClick={salvarConfig} className="h-8">
+              Salvar configuração
+            </Button>
+            {savedAt && <span className="text-xs">Salvo às {savedAt}</span>}
           </div>
         </div>
 
@@ -315,7 +358,9 @@ function Index() {
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
           {selected && currentSale && (() => {
-            const financiado = Math.max(0, selected.preco - currentSale.entrada);
+            const live = lotes.find((l) => l.id === selected.id) ?? selected;
+            const preco = live.preco;
+            const financiado = Math.max(0, preco - currentSale.entrada);
             const parcelaEsperada = calcParcela(financiado, currentSale.parcelas);
             const totalPago = currentSale.pagamentos.reduce<number>((a, p) => a + (p.valor ?? 0), 0);
             const totalContrato = currentSale.entrada + parcelaEsperada * currentSale.parcelas;
@@ -330,13 +375,13 @@ function Index() {
                     </Badge>
                   </div>
                   <DialogDescription>
-                    Quadra {selected.quadra} · Lote {selected.numero} · {selected.area} m² · Valor {brl(selected.preco)}
+                    Quadra {selected.quadra} · Lote {selected.numero} · {selected.area} m² · Valor {brl(preco)}
                   </DialogDescription>
                 </DialogHeader>
 
                 {/* Dados da venda financiada */}
-                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="sm:col-span-2">
+                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div className="sm:col-span-3">
                     <Label htmlFor="cliente">Cliente comprador</Label>
                     <Input
                       id="cliente"
@@ -346,14 +391,28 @@ function Index() {
                     />
                   </div>
                   <div>
+                    <Label htmlFor="preco">Valor total do lote</Label>
+                    <Input
+                      id="preco"
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={preco}
+                      onChange={(e) => {
+                        const v = Math.max(0, Number(e.target.value) || 0);
+                        setPrecoOverrides((prev) => ({ ...prev, [selected.id]: v }));
+                      }}
+                    />
+                  </div>
+                  <div>
                     <Label htmlFor="entrada">Valor de entrada</Label>
                     <Input
                       id="entrada"
                       type="number"
                       min={0}
-                      max={selected.preco}
+                      max={preco}
                       value={currentSale.entrada}
-                      onChange={(e) => updateSale(selected.id, { entrada: Math.max(0, Math.min(selected.preco, Number(e.target.value) || 0)) })}
+                      onChange={(e) => updateSale(selected.id, { entrada: Math.max(0, Math.min(preco, Number(e.target.value) || 0)) })}
                     />
                   </div>
                   <div>
