@@ -17,11 +17,12 @@ function calcParcela(financiado: number, n: number): number {
   return (financiado * i) / (1 - Math.pow(1 + i, -n));
 }
 
+type Pagamento = { valor: number | null; data: string | null };
 type Sale = {
   cliente: string;
   entrada: number;
   parcelas: number;
-  pagamentos: (number | null)[];
+  pagamentos: Pagamento[];
 };
 
 export const Route = createFileRoute("/")({
