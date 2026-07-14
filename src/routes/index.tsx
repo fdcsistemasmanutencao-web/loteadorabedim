@@ -8,13 +8,22 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 const ANNUAL_RATE = 0.05;
-const MONTHLY_RATE = ANNUAL_RATE / 12;
 
-// PMT (Price/francês): PV * i / (1 - (1+i)^-n)
-function calcParcela(financiado: number, n: number): number {
+// Sem juros no 1º ano. A partir do 2º ano, cada parcela recebe +5% ao ano (composto anualmente).
+// Parcela base = financiado / n. Parcela do mês i (1-indexado) = base * (1+0.05)^floor((i-1)/12).
+function parcelaBase(financiado: number, n: number): number {
   if (financiado <= 0 || n <= 0) return 0;
-  const i = MONTHLY_RATE;
-  return (financiado * i) / (1 - Math.pow(1 + i, -n));
+  return financiado / n;
+}
+function parcelaEsperadaMes(financiado: number, n: number, mes: number): number {
+  const base = parcelaBase(financiado, n);
+  const ano = Math.floor((mes - 1) / 12);
+  return base * Math.pow(1 + ANNUAL_RATE, ano);
+}
+function totalContratoCalc(financiado: number, n: number): number {
+  let s = 0;
+  for (let i = 1; i <= n; i++) s += parcelaEsperadaMes(financiado, n, i);
+  return s;
 }
 
 type Pagamento = { valor: number | null; data: string | null };
