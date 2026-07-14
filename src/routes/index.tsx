@@ -403,16 +403,24 @@ function Index() {
                         <tr>
                           <th className="px-3 py-2 text-left">#</th>
                           <th className="px-3 py-2 text-right">Esperado</th>
-                          <th className="px-3 py-2 text-right">Pago</th>
+                          <th className="px-3 py-2 text-right">Valor recebido</th>
+                          <th className="px-3 py-2 text-right">Data pagto</th>
                           <th className="px-3 py-2 text-right">Status</th>
                         </tr>
                       </thead>
                       <tbody>
                         {currentSale.pagamentos.map((pago, i) => {
-                          const below = pago !== null && pago < parcelaEsperada - 0.005;
-                          const above = pago !== null && pago >= parcelaEsperada - 0.005;
+                          const valor = pago.valor;
+                          const pago_ = valor !== null;
+                          const below = pago_ && valor! < parcelaEsperada - 0.005;
+                          const above = pago_ && valor! >= parcelaEsperada - 0.005;
+                          const rowClass = below
+                            ? "bg-red-500/5"
+                            : above
+                              ? "bg-emerald-500/5"
+                              : "";
                           return (
-                            <tr key={i} className="border-t">
+                            <tr key={i} className={cn("border-t", rowClass)}>
                               <td className="px-3 py-1.5 text-muted-foreground">{i + 1}</td>
                               <td className="px-3 py-1.5 text-right tabular-nums">{brl(parcelaEsperada)}</td>
                               <td className="px-3 py-1.5 text-right">
@@ -420,10 +428,10 @@ function Index() {
                                   type="number"
                                   min={0}
                                   step="0.01"
-                                  value={pago ?? ""}
+                                  value={valor ?? ""}
                                   onChange={(e) => {
                                     const v = e.target.value;
-                                    updatePagamento(selected.id, i, v === "" ? null : Number(v));
+                                    updatePagamento(selected.id, i, { valor: v === "" ? null : Number(v) });
                                   }}
                                   className={cn(
                                     "ml-auto h-8 w-28 text-right tabular-nums",
@@ -433,8 +441,19 @@ function Index() {
                                   placeholder="—"
                                 />
                               </td>
+                              <td className="px-3 py-1.5 text-right">
+                                <Input
+                                  type="date"
+                                  value={pago.data ?? ""}
+                                  onChange={(e) => {
+                                    const d = e.target.value;
+                                    updatePagamento(selected.id, i, { data: d === "" ? null : d });
+                                  }}
+                                  className="ml-auto h-8 w-40"
+                                />
+                              </td>
                               <td className="px-3 py-1.5 text-right text-xs font-medium">
-                                {pago === null ? (
+                                {!pago_ ? (
                                   <span className="text-muted-foreground">pendente</span>
                                 ) : below ? (
                                   <span className="text-red-600 dark:text-red-400">abaixo</span>
