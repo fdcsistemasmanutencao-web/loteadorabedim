@@ -135,7 +135,7 @@ function defaultSale(l: Lote): Sale {
     cliente: l.cliente ?? "",
     entrada: Math.round(l.preco * 0.2),
     parcelas: 60,
-    pagamentos: Array(60).fill(null),
+    pagamentos: Array.from({ length: 60 }, () => ({ valor: null, data: null })),
   };
 }
 
