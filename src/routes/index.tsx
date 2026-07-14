@@ -157,7 +157,7 @@ function Index() {
       if (!base) return prev;
       const next: Sale = { ...base, ...patch };
       if (patch.parcelas !== undefined && patch.parcelas !== base.parcelas) {
-        const arr = Array(patch.parcelas).fill(null) as (number | null)[];
+        const arr: Pagamento[] = Array.from({ length: patch.parcelas }, () => ({ valor: null, data: null }));
         for (let i = 0; i < Math.min(arr.length, base.pagamentos.length); i++) arr[i] = base.pagamentos[i];
         next.pagamentos = arr;
       }
@@ -165,12 +165,12 @@ function Index() {
     });
   };
 
-  const updatePagamento = (id: string, idx: number, valor: number | null) => {
+  const updatePagamento = (id: string, idx: number, patch: Partial<Pagamento>) => {
     setSales((prev) => {
       const base = prev[id] ?? (selected ? defaultSale(selected) : null);
       if (!base) return prev;
       const pagamentos = [...base.pagamentos];
-      pagamentos[idx] = valor;
+      pagamentos[idx] = { ...pagamentos[idx], ...patch };
       return { ...prev, [id]: { ...base, pagamentos } };
     });
   };
