@@ -8,13 +8,22 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 const ANNUAL_RATE = 0.05;
-const MONTHLY_RATE = ANNUAL_RATE / 12;
 
-// PMT (Price/francês): PV * i / (1 - (1+i)^-n)
-function calcParcela(financiado: number, n: number): number {
+// Sem juros no 1º ano. A partir do 2º ano, cada parcela recebe +5% ao ano (composto anualmente).
+// Parcela base = financiado / n. Parcela do mês i (1-indexado) = base * (1+0.05)^floor((i-1)/12).
+function parcelaBase(financiado: number, n: number): number {
   if (financiado <= 0 || n <= 0) return 0;
-  const i = MONTHLY_RATE;
-  return (financiado * i) / (1 - Math.pow(1 + i, -n));
+  return financiado / n;
+}
+function parcelaEsperadaMes(financiado: number, n: number, mes: number): number {
+  const base = parcelaBase(financiado, n);
+  const ano = Math.floor((mes - 1) / 12);
+  return base * Math.pow(1 + ANNUAL_RATE, ano);
+}
+function totalContratoCalc(financiado: number, n: number): number {
+  let s = 0;
+  for (let i = 1; i <= n; i++) s += parcelaEsperadaMes(financiado, n, i);
+  return s;
 }
 
 type Pagamento = { valor: number | null; data: string | null };
@@ -361,9 +370,9 @@ function Index() {
             const live = lotes.find((l) => l.id === selected.id) ?? selected;
             const preco = live.preco;
             const financiado = Math.max(0, preco - currentSale.entrada);
-            const parcelaEsperada = calcParcela(financiado, currentSale.parcelas);
+            const parcelaBaseVal = parcelaBase(financiado, currentSale.parcelas);
             const totalPago = currentSale.pagamentos.reduce<number>((a, p) => a + (p.valor ?? 0), 0);
-            const totalContrato = currentSale.entrada + parcelaEsperada * currentSale.parcelas;
+            const totalContrato = currentSale.entrada + totalContratoCalc(financiado, currentSale.parcelas);
             return (
               <>
                 <DialogHeader>
@@ -435,8 +444,8 @@ function Index() {
                     <div className="font-semibold">{brl(financiado)}</div>
                   </div>
                   <div>
-                    <div className="text-muted-foreground">Parcela esperada</div>
-                    <div className="font-semibold">{brl(parcelaEsperada)}</div>
+                    <div className="text-muted-foreground">Parcela base (1º ano)</div>
+                    <div className="font-semibold">{brl(parcelaBaseVal)}</div>
                   </div>
                   <div>
                     <div className="text-muted-foreground">Juros a.a.</div>
@@ -469,19 +478,21 @@ function Index() {
                       </thead>
                       <tbody>
                         {currentSale.pagamentos.map((pago, i) => {
+                          const esperado = parcelaEsperadaMes(financiado, currentSale.parcelas, i + 1);
                           const valor = pago.valor;
                           const pago_ = valor !== null;
-                          const below = pago_ && valor! < parcelaEsperada - 0.005;
-                          const above = pago_ && valor! >= parcelaEsperada - 0.005;
+                          const below = pago_ && valor! < esperado - 0.005;
+                          const above = pago_ && valor! >= esperado - 0.005;
                           const rowClass = below
                             ? "bg-red-500/5"
                             : above
                               ? "bg-emerald-500/5"
                               : "";
+                          const ano = Math.floor(i / 12) + 1;
                           return (
                             <tr key={i} className={cn("border-t", rowClass)}>
-                              <td className="px-3 py-1.5 text-muted-foreground">{i + 1}</td>
-                              <td className="px-3 py-1.5 text-right tabular-nums">{brl(parcelaEsperada)}</td>
+                              <td className="px-3 py-1.5 text-muted-foreground">{i + 1} <span className="text-[10px] opacity-60">a{ano}</span></td>
+                              <td className="px-3 py-1.5 text-right tabular-nums">{brl(esperado)}</td>
                               <td className="px-3 py-1.5 text-right">
                                 <Input
                                   type="number"
