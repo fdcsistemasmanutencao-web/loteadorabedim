@@ -358,7 +358,9 @@ function Index() {
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
           {selected && currentSale && (() => {
-            const financiado = Math.max(0, selected.preco - currentSale.entrada);
+            const live = lotes.find((l) => l.id === selected.id) ?? selected;
+            const preco = live.preco;
+            const financiado = Math.max(0, preco - currentSale.entrada);
             const parcelaEsperada = calcParcela(financiado, currentSale.parcelas);
             const totalPago = currentSale.pagamentos.reduce<number>((a, p) => a + (p.valor ?? 0), 0);
             const totalContrato = currentSale.entrada + parcelaEsperada * currentSale.parcelas;
@@ -373,13 +375,13 @@ function Index() {
                     </Badge>
                   </div>
                   <DialogDescription>
-                    Quadra {selected.quadra} · Lote {selected.numero} · {selected.area} m² · Valor {brl(selected.preco)}
+                    Quadra {selected.quadra} · Lote {selected.numero} · {selected.area} m² · Valor {brl(preco)}
                   </DialogDescription>
                 </DialogHeader>
 
                 {/* Dados da venda financiada */}
-                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="sm:col-span-2">
+                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div className="sm:col-span-3">
                     <Label htmlFor="cliente">Cliente comprador</Label>
                     <Input
                       id="cliente"
@@ -389,14 +391,28 @@ function Index() {
                     />
                   </div>
                   <div>
+                    <Label htmlFor="preco">Valor total do lote</Label>
+                    <Input
+                      id="preco"
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={preco}
+                      onChange={(e) => {
+                        const v = Math.max(0, Number(e.target.value) || 0);
+                        setPrecoOverrides((prev) => ({ ...prev, [selected.id]: v }));
+                      }}
+                    />
+                  </div>
+                  <div>
                     <Label htmlFor="entrada">Valor de entrada</Label>
                     <Input
                       id="entrada"
                       type="number"
                       min={0}
-                      max={selected.preco}
+                      max={preco}
                       value={currentSale.entrada}
-                      onChange={(e) => updateSale(selected.id, { entrada: Math.max(0, Math.min(selected.preco, Number(e.target.value) || 0)) })}
+                      onChange={(e) => updateSale(selected.id, { entrada: Math.max(0, Math.min(preco, Number(e.target.value) || 0)) })}
                     />
                   </div>
                   <div>
