@@ -17,11 +17,12 @@ function calcParcela(financiado: number, n: number): number {
   return (financiado * i) / (1 - Math.pow(1 + i, -n));
 }
 
+type Pagamento = { valor: number | null; data: string | null };
 type Sale = {
   cliente: string;
   entrada: number;
   parcelas: number;
-  pagamentos: (number | null)[];
+  pagamentos: Pagamento[];
 };
 
 export const Route = createFileRoute("/")({
@@ -134,7 +135,7 @@ function defaultSale(l: Lote): Sale {
     cliente: l.cliente ?? "",
     entrada: Math.round(l.preco * 0.2),
     parcelas: 60,
-    pagamentos: Array(60).fill(null),
+    pagamentos: Array.from({ length: 60 }, () => ({ valor: null, data: null })),
   };
 }
 
@@ -156,7 +157,7 @@ function Index() {
       if (!base) return prev;
       const next: Sale = { ...base, ...patch };
       if (patch.parcelas !== undefined && patch.parcelas !== base.parcelas) {
-        const arr = Array(patch.parcelas).fill(null) as (number | null)[];
+        const arr: Pagamento[] = Array.from({ length: patch.parcelas }, () => ({ valor: null, data: null }));
         for (let i = 0; i < Math.min(arr.length, base.pagamentos.length); i++) arr[i] = base.pagamentos[i];
         next.pagamentos = arr;
       }
@@ -164,12 +165,12 @@ function Index() {
     });
   };
 
-  const updatePagamento = (id: string, idx: number, valor: number | null) => {
+  const updatePagamento = (id: string, idx: number, patch: Partial<Pagamento>) => {
     setSales((prev) => {
       const base = prev[id] ?? (selected ? defaultSale(selected) : null);
       if (!base) return prev;
       const pagamentos = [...base.pagamentos];
-      pagamentos[idx] = valor;
+      pagamentos[idx] = { ...pagamentos[idx], ...patch };
       return { ...prev, [id]: { ...base, pagamentos } };
     });
   };
@@ -316,7 +317,7 @@ function Index() {
           {selected && currentSale && (() => {
             const financiado = Math.max(0, selected.preco - currentSale.entrada);
             const parcelaEsperada = calcParcela(financiado, currentSale.parcelas);
-            const totalPago = currentSale.pagamentos.reduce<number>((a, v) => a + (v ?? 0), 0);
+            const totalPago = currentSale.pagamentos.reduce<number>((a, p) => a + (p.valor ?? 0), 0);
             const totalContrato = currentSale.entrada + parcelaEsperada * currentSale.parcelas;
             return (
               <>
@@ -402,16 +403,24 @@ function Index() {
                         <tr>
                           <th className="px-3 py-2 text-left">#</th>
                           <th className="px-3 py-2 text-right">Esperado</th>
-                          <th className="px-3 py-2 text-right">Pago</th>
+                          <th className="px-3 py-2 text-right">Valor recebido</th>
+                          <th className="px-3 py-2 text-right">Data pagto</th>
                           <th className="px-3 py-2 text-right">Status</th>
                         </tr>
                       </thead>
                       <tbody>
                         {currentSale.pagamentos.map((pago, i) => {
-                          const below = pago !== null && pago < parcelaEsperada - 0.005;
-                          const above = pago !== null && pago >= parcelaEsperada - 0.005;
+                          const valor = pago.valor;
+                          const pago_ = valor !== null;
+                          const below = pago_ && valor! < parcelaEsperada - 0.005;
+                          const above = pago_ && valor! >= parcelaEsperada - 0.005;
+                          const rowClass = below
+                            ? "bg-red-500/5"
+                            : above
+                              ? "bg-emerald-500/5"
+                              : "";
                           return (
-                            <tr key={i} className="border-t">
+                            <tr key={i} className={cn("border-t", rowClass)}>
                               <td className="px-3 py-1.5 text-muted-foreground">{i + 1}</td>
                               <td className="px-3 py-1.5 text-right tabular-nums">{brl(parcelaEsperada)}</td>
                               <td className="px-3 py-1.5 text-right">
@@ -419,10 +428,10 @@ function Index() {
                                   type="number"
                                   min={0}
                                   step="0.01"
-                                  value={pago ?? ""}
+                                  value={valor ?? ""}
                                   onChange={(e) => {
                                     const v = e.target.value;
-                                    updatePagamento(selected.id, i, v === "" ? null : Number(v));
+                                    updatePagamento(selected.id, i, { valor: v === "" ? null : Number(v) });
                                   }}
                                   className={cn(
                                     "ml-auto h-8 w-28 text-right tabular-nums",
@@ -432,8 +441,19 @@ function Index() {
                                   placeholder="—"
                                 />
                               </td>
+                              <td className="px-3 py-1.5 text-right">
+                                <Input
+                                  type="date"
+                                  value={pago.data ?? ""}
+                                  onChange={(e) => {
+                                    const d = e.target.value;
+                                    updatePagamento(selected.id, i, { data: d === "" ? null : d });
+                                  }}
+                                  className="ml-auto h-8 w-40"
+                                />
+                              </td>
                               <td className="px-3 py-1.5 text-right text-xs font-medium">
-                                {pago === null ? (
+                                {!pago_ ? (
                                   <span className="text-muted-foreground">pendente</span>
                                 ) : below ? (
                                   <span className="text-red-600 dark:text-red-400">abaixo</span>
