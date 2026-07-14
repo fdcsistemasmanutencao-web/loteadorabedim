@@ -478,19 +478,21 @@ function Index() {
                       </thead>
                       <tbody>
                         {currentSale.pagamentos.map((pago, i) => {
+                          const esperado = parcelaEsperadaMes(financiado, currentSale.parcelas, i + 1);
                           const valor = pago.valor;
                           const pago_ = valor !== null;
-                          const below = pago_ && valor! < parcelaEsperada - 0.005;
-                          const above = pago_ && valor! >= parcelaEsperada - 0.005;
+                          const below = pago_ && valor! < esperado - 0.005;
+                          const above = pago_ && valor! >= esperado - 0.005;
                           const rowClass = below
                             ? "bg-red-500/5"
                             : above
                               ? "bg-emerald-500/5"
                               : "";
+                          const ano = Math.floor(i / 12) + 1;
                           return (
                             <tr key={i} className={cn("border-t", rowClass)}>
-                              <td className="px-3 py-1.5 text-muted-foreground">{i + 1}</td>
-                              <td className="px-3 py-1.5 text-right tabular-nums">{brl(parcelaEsperada)}</td>
+                              <td className="px-3 py-1.5 text-muted-foreground">{i + 1} <span className="text-[10px] opacity-60">a{ano}</span></td>
+                              <td className="px-3 py-1.5 text-right tabular-nums">{brl(esperado)}</td>
                               <td className="px-3 py-1.5 text-right">
                                 <Input
                                   type="number"
