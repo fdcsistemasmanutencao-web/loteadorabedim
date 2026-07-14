@@ -317,7 +317,7 @@ function Index() {
           {selected && currentSale && (() => {
             const financiado = Math.max(0, selected.preco - currentSale.entrada);
             const parcelaEsperada = calcParcela(financiado, currentSale.parcelas);
-            const totalPago = currentSale.pagamentos.reduce<number>((a, v) => a + (v ?? 0), 0);
+            const totalPago = currentSale.pagamentos.reduce<number>((a, p) => a + (p.valor ?? 0), 0);
             const totalContrato = currentSale.entrada + parcelaEsperada * currentSale.parcelas;
             return (
               <>
