@@ -201,7 +201,9 @@ function Index() {
     [lotesBase, precoOverrides],
   );
 
-  const currentSale = selected ? sales[selected.id] ?? defaultSale(selected) : null;
+  const currentSale = selected
+    ? { mesesSemJuros: DEFAULT_MESES_SEM_JUROS, ...(sales[selected.id] ?? defaultSale(selected)) }
+    : null;
 
   const updateSale = (id: string, patch: Partial<Sale>) => {
     setSales((prev) => {
@@ -376,7 +378,7 @@ function Index() {
             const financiado = Math.max(0, preco - currentSale.entrada);
             const parcelaBaseVal = parcelaBase(financiado, currentSale.parcelas);
             const totalPago = currentSale.pagamentos.reduce<number>((a, p) => a + (p.valor ?? 0), 0);
-            const totalContrato = currentSale.entrada + totalContratoCalc(financiado, currentSale.parcelas);
+            const totalContrato = currentSale.entrada + totalContratoCalc(financiado, currentSale.parcelas, currentSale.mesesSemJuros);
             return (
               <>
                 <DialogHeader>
@@ -439,6 +441,24 @@ function Index() {
                       onChange={(e) => updateSale(selected.id, { parcelas: Math.max(1, Math.min(360, Number(e.target.value) || 1)) })}
                     />
                   </div>
+                  <div className="sm:col-span-3">
+                    <Label htmlFor="carencia">Meses sem juros (carência)</Label>
+                    <Input
+                      id="carencia"
+                      type="number"
+                      min={0}
+                      max={currentSale.parcelas}
+                      value={currentSale.mesesSemJuros}
+                      onChange={(e) =>
+                        updateSale(selected.id, {
+                          mesesSemJuros: Math.max(0, Math.min(currentSale.parcelas, Number(e.target.value) || 0)),
+                        })
+                      }
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Após esses meses, aplica-se 5% ao ano composto a cada 12 meses.
+                    </p>
+                  </div>
                 </div>
 
                 {/* Resumo financeiro */}
@@ -448,7 +468,7 @@ function Index() {
                     <div className="font-semibold">{brl(financiado)}</div>
                   </div>
                   <div>
-                    <div className="text-muted-foreground">Parcela base (1º ano)</div>
+                    <div className="text-muted-foreground">Parcela base (carência)</div>
                     <div className="font-semibold">{brl(parcelaBaseVal)}</div>
                   </div>
                   <div>
@@ -482,7 +502,7 @@ function Index() {
                       </thead>
                       <tbody>
                         {currentSale.pagamentos.map((pago, i) => {
-                          const esperado = parcelaEsperadaMes(financiado, currentSale.parcelas, i + 1);
+                          const esperado = parcelaEsperadaMes(financiado, currentSale.parcelas, i + 1, currentSale.mesesSemJuros);
                           const valor = pago.valor;
                           const pago_ = valor !== null;
                           const below = pago_ && valor! < esperado - 0.005;
@@ -492,7 +512,10 @@ function Index() {
                             : above
                               ? "bg-emerald-500/5"
                               : "";
-                          const ano = Math.floor(i / 12) + 1;
+                          const mes = i + 1;
+                          const anoLabel = mes <= currentSale.mesesSemJuros
+                            ? "c"
+                            : `a${Math.floor((mes - currentSale.mesesSemJuros - 1) / 12) + 2}`;
                           return (
                             <tr key={i} className={cn("border-t", rowClass)}>
                               <td className="px-3 py-1.5 text-muted-foreground">{i + 1} <span className="text-[10px] opacity-60">a{ano}</span></td>
