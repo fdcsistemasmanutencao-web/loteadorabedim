@@ -202,7 +202,10 @@ function Index() {
   );
 
   const currentSale = selected
-    ? { mesesSemJuros: DEFAULT_MESES_SEM_JUROS, ...(sales[selected.id] ?? defaultSale(selected)) }
+    ? (() => {
+        const s = sales[selected.id] ?? defaultSale(selected);
+        return { ...s, mesesSemJuros: s.mesesSemJuros ?? DEFAULT_MESES_SEM_JUROS };
+      })()
     : null;
 
   const updateSale = (id: string, patch: Partial<Sale>) => {
@@ -518,7 +521,7 @@ function Index() {
                             : `a${Math.floor((mes - currentSale.mesesSemJuros - 1) / 12) + 2}`;
                           return (
                             <tr key={i} className={cn("border-t", rowClass)}>
-                              <td className="px-3 py-1.5 text-muted-foreground">{i + 1} <span className="text-[10px] opacity-60">a{ano}</span></td>
+                              <td className="px-3 py-1.5 text-muted-foreground">{i + 1} <span className="text-[10px] opacity-60">{anoLabel}</span></td>
                               <td className="px-3 py-1.5 text-right tabular-nums">{brl(esperado)}</td>
                               <td className="px-3 py-1.5 text-right">
                                 <Input
