@@ -8,21 +8,23 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 const ANNUAL_RATE = 0.05;
+const DEFAULT_MESES_SEM_JUROS = 12;
 
-// Sem juros no 1º ano. A partir do 2º ano, cada parcela recebe +5% ao ano (composto anualmente).
-// Parcela base = financiado / n. Parcela do mês i (1-indexado) = base * (1+0.05)^floor((i-1)/12).
+// Configurável: `mesesSemJuros` meses iniciais sem juros. Depois, a cada 12 meses,
+// aplica +5% ao ano composto sobre a parcela base.
 function parcelaBase(financiado: number, n: number): number {
   if (financiado <= 0 || n <= 0) return 0;
   return financiado / n;
 }
-function parcelaEsperadaMes(financiado: number, n: number, mes: number): number {
+function parcelaEsperadaMes(financiado: number, n: number, mes: number, mesesSemJuros: number = DEFAULT_MESES_SEM_JUROS): number {
   const base = parcelaBase(financiado, n);
-  const ano = Math.floor((mes - 1) / 12);
+  if (mes <= mesesSemJuros) return base;
+  const ano = Math.floor((mes - mesesSemJuros - 1) / 12) + 1;
   return base * Math.pow(1 + ANNUAL_RATE, ano);
 }
-function totalContratoCalc(financiado: number, n: number): number {
+function totalContratoCalc(financiado: number, n: number, mesesSemJuros: number = DEFAULT_MESES_SEM_JUROS): number {
   let s = 0;
-  for (let i = 1; i <= n; i++) s += parcelaEsperadaMes(financiado, n, i);
+  for (let i = 1; i <= n; i++) s += parcelaEsperadaMes(financiado, n, i, mesesSemJuros);
   return s;
 }
 
@@ -31,6 +33,7 @@ type Sale = {
   cliente: string;
   entrada: number;
   parcelas: number;
+  mesesSemJuros: number;
   pagamentos: Pagamento[];
 };
 
@@ -144,6 +147,7 @@ function defaultSale(l: Lote): Sale {
     cliente: l.cliente ?? "",
     entrada: Math.round(l.preco * 0.2),
     parcelas: 60,
+    mesesSemJuros: DEFAULT_MESES_SEM_JUROS,
     pagamentos: Array.from({ length: 60 }, () => ({ valor: null, data: null })),
   };
 }
