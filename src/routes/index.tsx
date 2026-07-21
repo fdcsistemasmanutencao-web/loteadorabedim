@@ -157,6 +157,7 @@ type PersistedConfig = {
   total: number;
   perQuadra: number;
   precoOverrides: Record<string, number>;
+  nomeOverrides: Record<string, string>;
   sales: Record<string, Sale>;
 };
 
@@ -178,6 +179,7 @@ function Index() {
   const [perQuadra, setPerQuadra] = useState(15);
   const [sales, setSales] = useState<Record<string, Sale>>({});
   const [precoOverrides, setPrecoOverrides] = useState<Record<string, number>>({});
+  const [nomeOverrides, setNomeOverrides] = useState<Record<string, string>>({});
   const [savedAt, setSavedAt] = useState<string | null>(null);
 
   // Carregar configuração salva
@@ -186,11 +188,12 @@ function Index() {
     if (cfg.total) setTotal(cfg.total);
     if (cfg.perQuadra) setPerQuadra(cfg.perQuadra);
     if (cfg.precoOverrides) setPrecoOverrides(cfg.precoOverrides);
+    if (cfg.nomeOverrides) setNomeOverrides(cfg.nomeOverrides);
     if (cfg.sales) setSales(cfg.sales);
   }, []);
 
   const salvarConfig = () => {
-    const payload: PersistedConfig = { total, perQuadra, precoOverrides, sales };
+    const payload: PersistedConfig = { total, perQuadra, precoOverrides, nomeOverrides, sales };
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     setSavedAt(new Date().toLocaleTimeString("pt-BR"));
   };
@@ -251,7 +254,7 @@ function Index() {
       if (!filters.has(l.status)) continue;
       if (search) {
         const q = search.toLowerCase();
-        const hay = `${l.id} ${l.cliente ?? ""} ${l.corretor ?? ""}`.toLowerCase();
+        const hay = `${l.id} ${nomeOverrides[l.id] ?? ""} ${l.cliente ?? ""} ${l.corretor ?? ""}`.toLowerCase();
         if (!hay.includes(q)) continue;
       }
       (grouped[l.quadra] ||= []).push(l);
@@ -351,11 +354,13 @@ function Index() {
               <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12">
                 {lotes.map((l) => {
                   const meta = STATUS_META[l.status];
+                  const nome = nomeOverrides[l.id];
+                  const label = nome ?? String(l.numero);
                   return (
                     <button
                       key={l.id}
                       onClick={() => setSelected(l)}
-                      title={`Lote ${l.id} — ${meta.label}`}
+                      title={`Lote ${nome ? `${nome} (${l.id})` : l.id} — ${meta.label}`}
                       className={cn(
                         "group relative aspect-square rounded-md border text-xs font-semibold transition focus:outline-none focus:ring-2",
                         meta.fill,
@@ -363,7 +368,7 @@ function Index() {
                       )}
                     >
                       <span className="absolute left-1 top-1 text-[10px] font-normal opacity-70">{l.quadra}</span>
-                      <span className="text-base">{l.numero}</span>
+                      <span className={cn("truncate px-1", label.length > 3 ? "text-xs" : "text-base")}>{label}</span>
                     </button>
                   );
                 })}
@@ -386,7 +391,7 @@ function Index() {
               <>
                 <DialogHeader>
                   <div className="flex items-center justify-between gap-3">
-                    <DialogTitle className="text-xl">Lote {selected.id}</DialogTitle>
+                    <DialogTitle className="text-xl">Lote {nomeOverrides[selected.id] ? `${nomeOverrides[selected.id]} · ${selected.id}` : selected.id}</DialogTitle>
                     <Badge variant="outline" className={cn("border", STATUS_META[selected.status].badge)}>
                       <span className={cn("mr-1.5 h-2 w-2 rounded-full", STATUS_META[selected.status].dot)} />
                       {STATUS_META[selected.status].label}
@@ -399,13 +404,30 @@ function Index() {
 
                 {/* Dados da venda financiada */}
                 <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <div className="sm:col-span-3">
+                  <div className="sm:col-span-2">
                     <Label htmlFor="cliente">Cliente comprador</Label>
                     <Input
                       id="cliente"
                       value={currentSale.cliente}
                       onChange={(e) => updateSale(selected.id, { cliente: e.target.value })}
                       placeholder="Nome do comprador"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="nomeLote">Renomear lote</Label>
+                    <Input
+                      id="nomeLote"
+                      value={nomeOverrides[selected.id] ?? ""}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setNomeOverrides((prev) => {
+                          const next = { ...prev };
+                          if (v.trim() === "") delete next[selected.id];
+                          else next[selected.id] = v;
+                          return next;
+                        });
+                      }}
+                      placeholder={String(selected.numero)}
                     />
                   </div>
                   <div>
