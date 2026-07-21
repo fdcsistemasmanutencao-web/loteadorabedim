@@ -157,6 +157,7 @@ type PersistedConfig = {
   total: number;
   perQuadra: number;
   precoOverrides: Record<string, number>;
+  nomeOverrides: Record<string, string>;
   sales: Record<string, Sale>;
 };
 
@@ -178,6 +179,7 @@ function Index() {
   const [perQuadra, setPerQuadra] = useState(15);
   const [sales, setSales] = useState<Record<string, Sale>>({});
   const [precoOverrides, setPrecoOverrides] = useState<Record<string, number>>({});
+  const [nomeOverrides, setNomeOverrides] = useState<Record<string, string>>({});
   const [savedAt, setSavedAt] = useState<string | null>(null);
 
   // Carregar configuração salva
@@ -186,11 +188,12 @@ function Index() {
     if (cfg.total) setTotal(cfg.total);
     if (cfg.perQuadra) setPerQuadra(cfg.perQuadra);
     if (cfg.precoOverrides) setPrecoOverrides(cfg.precoOverrides);
+    if (cfg.nomeOverrides) setNomeOverrides(cfg.nomeOverrides);
     if (cfg.sales) setSales(cfg.sales);
   }, []);
 
   const salvarConfig = () => {
-    const payload: PersistedConfig = { total, perQuadra, precoOverrides, sales };
+    const payload: PersistedConfig = { total, perQuadra, precoOverrides, nomeOverrides, sales };
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     setSavedAt(new Date().toLocaleTimeString("pt-BR"));
   };
