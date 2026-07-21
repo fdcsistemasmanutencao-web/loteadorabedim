@@ -254,7 +254,7 @@ function Index() {
       if (!filters.has(l.status)) continue;
       if (search) {
         const q = search.toLowerCase();
-        const hay = `${l.id} ${l.cliente ?? ""} ${l.corretor ?? ""}`.toLowerCase();
+        const hay = `${l.id} ${nomeOverrides[l.id] ?? ""} ${l.cliente ?? ""} ${l.corretor ?? ""}`.toLowerCase();
         if (!hay.includes(q)) continue;
       }
       (grouped[l.quadra] ||= []).push(l);
@@ -354,11 +354,13 @@ function Index() {
               <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12">
                 {lotes.map((l) => {
                   const meta = STATUS_META[l.status];
+                  const nome = nomeOverrides[l.id];
+                  const label = nome ?? String(l.numero);
                   return (
                     <button
                       key={l.id}
                       onClick={() => setSelected(l)}
-                      title={`Lote ${l.id} — ${meta.label}`}
+                      title={`Lote ${nome ? `${nome} (${l.id})` : l.id} — ${meta.label}`}
                       className={cn(
                         "group relative aspect-square rounded-md border text-xs font-semibold transition focus:outline-none focus:ring-2",
                         meta.fill,
@@ -366,7 +368,7 @@ function Index() {
                       )}
                     >
                       <span className="absolute left-1 top-1 text-[10px] font-normal opacity-70">{l.quadra}</span>
-                      <span className="text-base">{l.numero}</span>
+                      <span className={cn("truncate px-1", label.length > 3 ? "text-xs" : "text-base")}>{label}</span>
                     </button>
                   );
                 })}
@@ -389,7 +391,7 @@ function Index() {
               <>
                 <DialogHeader>
                   <div className="flex items-center justify-between gap-3">
-                    <DialogTitle className="text-xl">Lote {selected.id}</DialogTitle>
+                    <DialogTitle className="text-xl">Lote {nomeOverrides[selected.id] ? `${nomeOverrides[selected.id]} · ${selected.id}` : selected.id}</DialogTitle>
                     <Badge variant="outline" className={cn("border", STATUS_META[selected.status].badge)}>
                       <span className={cn("mr-1.5 h-2 w-2 rounded-full", STATUS_META[selected.status].dot)} />
                       {STATUS_META[selected.status].label}
