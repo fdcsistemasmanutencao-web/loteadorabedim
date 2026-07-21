@@ -77,14 +77,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "Mapa de Lotes — Loteadora" },
+      { name: "description", content: "Mapa visual interativo de lotes com status Disponível, Reservado, Vendido e Cancelado." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "Mapa de Lotes — Loteadora" },
+      { property: "og:description", content: "Mapa visual interativo de lotes com status Disponível, Reservado, Vendido e Cancelado." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Mapa de Lotes — Loteadora" },
+      { name: "twitter:description", content: "Mapa visual interativo de lotes com status Disponível, Reservado, Vendido e Cancelado." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/92a55c4c-1a58-44c8-b669-af687704776a/id-preview-5b621286--9a259b0e-6d26-4458-b435-e519f2023abf.lovable.app-1784642675919.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/92a55c4c-1a58-44c8-b669-af687704776a/id-preview-5b621286--9a259b0e-6d26-4458-b435-e519f2023abf.lovable.app-1784642675919.png" },
     ],
     links: [
       {
