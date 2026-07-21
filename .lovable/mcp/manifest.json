@@ -1,0 +1,129 @@
+{
+  "version": 1,
+  "sdk_version": "0.24.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "none"
+  },
+  "mcp": {
+    "server": {
+      "name": "loteadora-mcp",
+      "version": "0.1.0",
+      "title": "Loteadora — Mapa e Financiamento"
+    },
+    "tools": [
+      {
+        "name": "calcular_financiamento",
+        "title": "Calcular financiamento de lote",
+        "description": "Calcula o plano de financiamento de um lote: valor financiado, parcela base do 1º ano, parcela esperada por mês (com juros de 5% a.a. compostos a partir do 2º ano) e total do contrato.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "valor_total": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Valor total do lote em reais."
+            },
+            "entrada": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Valor de entrada em reais."
+            },
+            "parcelas": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 360,
+              "description": "Número de parcelas mensais (1 a 360)."
+            }
+          },
+          "required": [
+            "valor_total",
+            "entrada",
+            "parcelas"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "parcela_esperada_mes",
+        "title": "Parcela esperada em um mês",
+        "description": "Retorna o valor esperado de uma parcela específica considerando 5% a.a. de juros compostos aplicados anualmente a partir do 2º ano.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "financiado": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Valor financiado (após entrada) em reais."
+            },
+            "parcelas": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 360,
+              "description": "Número total de parcelas."
+            },
+            "mes": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Mês desejado (1-indexado)."
+            }
+          },
+          "required": [
+            "financiado",
+            "parcelas",
+            "mes"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "gerar_mapa_lotes",
+        "title": "Gerar mapa de lotes",
+        "description": "Gera a estrutura de quadras e lotes (identificadores) a partir de um total de lotes e uma quantidade por quadra. Útil para planejar novos empreendimentos.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "total": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5000,
+              "description": "Total de lotes no empreendimento."
+            },
+            "por_quadra": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "description": "Quantidade de lotes por quadra."
+            }
+          },
+          "required": [
+            "total",
+            "por_quadra"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
