@@ -404,13 +404,30 @@ function Index() {
 
                 {/* Dados da venda financiada */}
                 <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <div className="sm:col-span-3">
+                  <div className="sm:col-span-2">
                     <Label htmlFor="cliente">Cliente comprador</Label>
                     <Input
                       id="cliente"
                       value={currentSale.cliente}
                       onChange={(e) => updateSale(selected.id, { cliente: e.target.value })}
                       placeholder="Nome do comprador"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="nomeLote">Renomear lote</Label>
+                    <Input
+                      id="nomeLote"
+                      value={nomeOverrides[selected.id] ?? ""}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setNomeOverrides((prev) => {
+                          const next = { ...prev };
+                          if (v.trim() === "") delete next[selected.id];
+                          else next[selected.id] = v;
+                          return next;
+                        });
+                      }}
+                      placeholder={String(selected.numero)}
                     />
                   </div>
                   <div>
