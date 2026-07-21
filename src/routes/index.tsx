@@ -8,21 +8,23 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 const ANNUAL_RATE = 0.05;
+const DEFAULT_MESES_SEM_JUROS = 12;
 
-// Sem juros no 1º ano. A partir do 2º ano, cada parcela recebe +5% ao ano (composto anualmente).
-// Parcela base = financiado / n. Parcela do mês i (1-indexado) = base * (1+0.05)^floor((i-1)/12).
+// Configurável: `mesesSemJuros` meses iniciais sem juros. Depois, a cada 12 meses,
+// aplica +5% ao ano composto sobre a parcela base.
 function parcelaBase(financiado: number, n: number): number {
   if (financiado <= 0 || n <= 0) return 0;
   return financiado / n;
 }
-function parcelaEsperadaMes(financiado: number, n: number, mes: number): number {
+function parcelaEsperadaMes(financiado: number, n: number, mes: number, mesesSemJuros: number = DEFAULT_MESES_SEM_JUROS): number {
   const base = parcelaBase(financiado, n);
-  const ano = Math.floor((mes - 1) / 12);
+  if (mes <= mesesSemJuros) return base;
+  const ano = Math.floor((mes - mesesSemJuros - 1) / 12) + 1;
   return base * Math.pow(1 + ANNUAL_RATE, ano);
 }
-function totalContratoCalc(financiado: number, n: number): number {
+function totalContratoCalc(financiado: number, n: number, mesesSemJuros: number = DEFAULT_MESES_SEM_JUROS): number {
   let s = 0;
-  for (let i = 1; i <= n; i++) s += parcelaEsperadaMes(financiado, n, i);
+  for (let i = 1; i <= n; i++) s += parcelaEsperadaMes(financiado, n, i, mesesSemJuros);
   return s;
 }
 
@@ -31,6 +33,7 @@ type Sale = {
   cliente: string;
   entrada: number;
   parcelas: number;
+  mesesSemJuros: number;
   pagamentos: Pagamento[];
 };
 
@@ -144,6 +147,7 @@ function defaultSale(l: Lote): Sale {
     cliente: l.cliente ?? "",
     entrada: Math.round(l.preco * 0.2),
     parcelas: 60,
+    mesesSemJuros: DEFAULT_MESES_SEM_JUROS,
     pagamentos: Array.from({ length: 60 }, () => ({ valor: null, data: null })),
   };
 }
@@ -197,7 +201,12 @@ function Index() {
     [lotesBase, precoOverrides],
   );
 
-  const currentSale = selected ? sales[selected.id] ?? defaultSale(selected) : null;
+  const currentSale = selected
+    ? (() => {
+        const s = sales[selected.id] ?? defaultSale(selected);
+        return { ...s, mesesSemJuros: s.mesesSemJuros ?? DEFAULT_MESES_SEM_JUROS };
+      })()
+    : null;
 
   const updateSale = (id: string, patch: Partial<Sale>) => {
     setSales((prev) => {
@@ -372,7 +381,7 @@ function Index() {
             const financiado = Math.max(0, preco - currentSale.entrada);
             const parcelaBaseVal = parcelaBase(financiado, currentSale.parcelas);
             const totalPago = currentSale.pagamentos.reduce<number>((a, p) => a + (p.valor ?? 0), 0);
-            const totalContrato = currentSale.entrada + totalContratoCalc(financiado, currentSale.parcelas);
+            const totalContrato = currentSale.entrada + totalContratoCalc(financiado, currentSale.parcelas, currentSale.mesesSemJuros);
             return (
               <>
                 <DialogHeader>
@@ -435,6 +444,24 @@ function Index() {
                       onChange={(e) => updateSale(selected.id, { parcelas: Math.max(1, Math.min(360, Number(e.target.value) || 1)) })}
                     />
                   </div>
+                  <div className="sm:col-span-3">
+                    <Label htmlFor="carencia">Meses sem juros (carência)</Label>
+                    <Input
+                      id="carencia"
+                      type="number"
+                      min={0}
+                      max={currentSale.parcelas}
+                      value={currentSale.mesesSemJuros}
+                      onChange={(e) =>
+                        updateSale(selected.id, {
+                          mesesSemJuros: Math.max(0, Math.min(currentSale.parcelas, Number(e.target.value) || 0)),
+                        })
+                      }
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Após esses meses, aplica-se 5% ao ano composto a cada 12 meses.
+                    </p>
+                  </div>
                 </div>
 
                 {/* Resumo financeiro */}
@@ -444,7 +471,7 @@ function Index() {
                     <div className="font-semibold">{brl(financiado)}</div>
                   </div>
                   <div>
-                    <div className="text-muted-foreground">Parcela base (1º ano)</div>
+                    <div className="text-muted-foreground">Parcela base (carência)</div>
                     <div className="font-semibold">{brl(parcelaBaseVal)}</div>
                   </div>
                   <div>
@@ -478,7 +505,7 @@ function Index() {
                       </thead>
                       <tbody>
                         {currentSale.pagamentos.map((pago, i) => {
-                          const esperado = parcelaEsperadaMes(financiado, currentSale.parcelas, i + 1);
+                          const esperado = parcelaEsperadaMes(financiado, currentSale.parcelas, i + 1, currentSale.mesesSemJuros);
                           const valor = pago.valor;
                           const pago_ = valor !== null;
                           const below = pago_ && valor! < esperado - 0.005;
@@ -488,10 +515,13 @@ function Index() {
                             : above
                               ? "bg-emerald-500/5"
                               : "";
-                          const ano = Math.floor(i / 12) + 1;
+                          const mes = i + 1;
+                          const anoLabel = mes <= currentSale.mesesSemJuros
+                            ? "c"
+                            : `a${Math.floor((mes - currentSale.mesesSemJuros - 1) / 12) + 2}`;
                           return (
                             <tr key={i} className={cn("border-t", rowClass)}>
-                              <td className="px-3 py-1.5 text-muted-foreground">{i + 1} <span className="text-[10px] opacity-60">a{ano}</span></td>
+                              <td className="px-3 py-1.5 text-muted-foreground">{i + 1} <span className="text-[10px] opacity-60">{anoLabel}</span></td>
                               <td className="px-3 py-1.5 text-right tabular-nums">{brl(esperado)}</td>
                               <td className="px-3 py-1.5 text-right">
                                 <Input

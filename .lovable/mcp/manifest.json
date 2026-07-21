@@ -15,7 +15,7 @@
       {
         "name": "calcular_financiamento",
         "title": "Calcular financiamento de lote",
-        "description": "Calcula o plano de financiamento de um lote: valor financiado, parcela base do 1º ano, parcela esperada por mês (com juros de 5% a.a. compostos a partir do 2º ano) e total do contrato.",
+        "description": "Calcula o plano de financiamento de um lote: valor financiado, parcela base, cronograma com carência configurável (meses sem juros) e depois 5% a.a. composto a cada 12 meses, e total do contrato.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -39,6 +39,13 @@
               "minimum": 1,
               "maximum": 360,
               "description": "Número de parcelas mensais (1 a 360)."
+            },
+            "meses_sem_juros": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 360,
+              "default": 12,
+              "description": "Meses iniciais de carência sem juros. Padrão: 12."
             }
           },
           "required": [
@@ -54,7 +61,7 @@
       {
         "name": "parcela_esperada_mes",
         "title": "Parcela esperada em um mês",
-        "description": "Retorna o valor esperado de uma parcela específica considerando 5% a.a. de juros compostos aplicados anualmente a partir do 2º ano.",
+        "description": "Retorna o valor esperado de uma parcela em um mês específico, considerando meses de carência sem juros e depois 5% a.a. composto a cada 12 meses.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -78,6 +85,13 @@
               "type": "integer",
               "minimum": 1,
               "description": "Mês desejado (1-indexado)."
+            },
+            "meses_sem_juros": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 360,
+              "default": 12,
+              "description": "Meses iniciais de carência sem juros. Padrão: 12."
             }
           },
           "required": [
