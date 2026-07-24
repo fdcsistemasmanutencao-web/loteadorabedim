@@ -507,14 +507,7 @@ function Index() {
                         <button
                           key={s}
                           type="button"
-                          onClick={() =>
-                            setStatusOverrides((prev) => {
-                              const next = { ...prev };
-                              if (s === selected.status) delete next[selected.id];
-                              else next[selected.id] = s;
-                              return next;
-                            })
-                          }
+                          onClick={() => changeStatus(s)}
                           className={cn(
                             "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition",
                             active ? meta.fill : "border-border bg-card text-muted-foreground hover:bg-muted/50",
