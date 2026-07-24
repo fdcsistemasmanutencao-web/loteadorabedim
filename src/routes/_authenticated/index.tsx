@@ -1045,7 +1045,22 @@ function Index() {
                       onChange={(e) => updateSale(selected.id, { parcelas: Math.max(1, Math.min(360, Number(e.target.value) || 1)) })}
                     />
                   </div>
-                  <div className="sm:col-span-3">
+                  <div>
+                    <Label htmlFor="data1a">Data da 1ª parcela</Label>
+                    <Input
+                      id="data1a"
+                      type="date"
+                      value={currentSale.dataPrimeiraParcela ?? ""}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        updateSale(selected.id, { dataPrimeiraParcela: v === "" ? null : v });
+                      }}
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Usada para calcular parcelas em atraso e a vencer.
+                    </p>
+                  </div>
+                  <div className="sm:col-span-2">
                     <Label htmlFor="carencia">Meses sem juros (carência)</Label>
                     <Input
                       id="carencia"
