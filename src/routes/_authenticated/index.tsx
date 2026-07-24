@@ -816,7 +816,8 @@ function Index() {
         const valor = pago?.valor;
         const quitada = valor !== null && valor !== undefined && valor >= esperado - 0.005;
         if (quitada) continue;
-        const venc = addMonths(s.dataPrimeiraParcela, i);
+        const venc = vencimentoParcela(s, i);
+        if (!venc) continue;
         const diffMs = today.getTime() - venc.getTime();
         const diasAtraso = Math.floor(diffMs / 86400000);
         const info: ParcelaInfo = {
