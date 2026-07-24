@@ -171,6 +171,7 @@ type PersistedConfig = {
   precoOverrides: Record<string, number>;
   nomeOverrides: Record<string, string>;
   statusOverrides: Record<string, Status>;
+  corretorOverrides: Record<string, string>;
   sales: Record<string, Sale>;
 };
 
