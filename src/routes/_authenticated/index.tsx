@@ -161,9 +161,24 @@ function defaultSale(l: Lote): Sale {
     entrada: Math.round(l.preco * 0.2),
     parcelas: 60,
     mesesSemJuros: DEFAULT_MESES_SEM_JUROS,
+    dataPrimeiraParcela: null,
     pagamentos: Array.from({ length: 60 }, () => ({ valor: null, data: null })),
   };
 }
+
+function addMonths(iso: string, months: number): Date {
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(y, (m - 1) + months, d);
+  // Corrige overflow de meses curtos (ex.: 31 jan + 1 mês)
+  if (dt.getDate() !== d) dt.setDate(0);
+  return dt;
+}
+const startOfToday = () => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+const brDate = (d: Date) => d.toLocaleDateString("pt-BR");
 
 const STORAGE_KEY = "loteadora:config:v1";
 type PersistedConfig = {
