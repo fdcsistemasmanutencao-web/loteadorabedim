@@ -805,7 +805,7 @@ function Index() {
     const proximas: ParcelaInfo[] = [];
     for (const l of lotes) {
       const s = sales[l.id];
-      if (!s || !s.dataPrimeiraParcela) continue;
+      if (!s) continue;
       const financiado = Math.max(0, l.preco - s.entrada);
       const nome = nomeOverrides[l.id];
       const label = nome ? `${nome} (${l.id})` : l.id;
