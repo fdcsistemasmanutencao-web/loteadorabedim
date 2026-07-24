@@ -1599,16 +1599,11 @@ function Index() {
               )}
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{displayName || "(sem nome)"}</p>
-                <p className="truncate text-xs text-muted-foreground">{userEmail}</p>
               </div>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <Label htmlFor="acc-email">E-mail</Label>
-                <Input id="acc-email" value={userEmail ?? ""} readOnly disabled />
-              </div>
-              <div>
+              <div className="sm:col-span-2">
                 <Label htmlFor="acc-id">ID</Label>
                 <Input id="acc-id" value={userId ?? ""} readOnly disabled className="font-mono text-xs" />
               </div>
