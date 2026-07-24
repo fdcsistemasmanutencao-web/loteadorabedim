@@ -326,7 +326,10 @@ function Index() {
     setSelectedIds(ids);
   };
 
-  const bulkChangeStatus = async (novo: Status) => {
+  const applyBulkStatus = async (
+    novo: Status,
+    extras?: { corretor?: string; cliente?: string },
+  ) => {
     if (!userId || selectedIds.size === 0) return;
     setBulkBusy(true);
     const ids = Array.from(selectedIds);
@@ -335,13 +338,35 @@ function Index() {
 
     setStatusOverrides((prev) => {
       const next = { ...prev };
-      for (const id of toApply) {
+      for (const id of ids) {
         const base = lotesBase.find((l) => l.id === id);
         if (base && novo === base.status) delete next[id];
         else next[id] = novo;
       }
       return next;
     });
+
+    if (extras?.corretor) {
+      const corretor = extras.corretor;
+      setCorretorOverrides((prev) => {
+        const next = { ...prev };
+        for (const id of ids) next[id] = corretor;
+        return next;
+      });
+    }
+
+    if (extras?.cliente) {
+      const cliente = extras.cliente;
+      setSales((prev) => {
+        const next = { ...prev };
+        for (const id of ids) {
+          const base = lotesBase.find((l) => l.id === id);
+          const existing = next[id] ?? (base ? defaultSale(base) : null);
+          if (existing) next[id] = { ...existing, cliente };
+        }
+        return next;
+      });
+    }
 
     if (toApply.length > 0) {
       const rows = toApply.map((id) => ({
@@ -359,6 +384,49 @@ function Index() {
     }
     setBulkBusy(false);
   };
+
+  const bulkChangeStatus = (novo: Status) => {
+    if (selectedIds.size === 0) return;
+    if (novo === "reservado" || novo === "vendido") {
+      // Pré-preenche com o corretor mais frequente entre os selecionados
+      const freq = new Map<string, number>();
+      for (const id of selectedIds) {
+        const c = corretorOverrides[id] ?? lotesBase.find((l) => l.id === id)?.corretor;
+        if (c) freq.set(c, (freq.get(c) ?? 0) + 1);
+      }
+      const topCorretor = [...freq.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "";
+      setBulkCorretor(topCorretor);
+      setBulkCliente("");
+      setBulkErrors({});
+      setBulkPendingStatus(novo);
+      return;
+    }
+    void applyBulkStatus(novo);
+  };
+
+  const confirmBulkAssignment = async () => {
+    if (!bulkPendingStatus) return;
+    const errors: { corretor?: string; cliente?: string } = {};
+    const corretor = bulkCorretor.trim();
+    const cliente = bulkCliente.trim();
+    if (corretor.length < 2) errors.corretor = "Informe o nome do corretor (mín. 2 caracteres).";
+    if (corretor.length > 120) errors.corretor = "Máx. 120 caracteres.";
+    if (bulkPendingStatus === "vendido") {
+      if (cliente.length < 2) errors.cliente = "Informe o nome do cliente (mín. 2 caracteres).";
+      else if (cliente.length > 120) errors.cliente = "Máx. 120 caracteres.";
+    }
+    if (Object.keys(errors).length > 0) {
+      setBulkErrors(errors);
+      return;
+    }
+    const pending = bulkPendingStatus;
+    setBulkPendingStatus(null);
+    await applyBulkStatus(pending, {
+      corretor,
+      cliente: pending === "vendido" ? cliente : undefined,
+    });
+  };
+
 
   const currentSale = selected
     ? (() => {
