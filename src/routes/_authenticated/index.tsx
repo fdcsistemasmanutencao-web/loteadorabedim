@@ -249,9 +249,11 @@ function Index() {
       const next = { ...l };
       if (precoOverrides[l.id] != null) next.preco = precoOverrides[l.id];
       if (statusOverrides[l.id]) next.status = statusOverrides[l.id];
+      if (corretorOverrides[l.id]) next.corretor = corretorOverrides[l.id];
+      if (sales[l.id]?.cliente) next.cliente = sales[l.id].cliente;
       return next;
     }),
-    [lotesBase, precoOverrides, statusOverrides],
+    [lotesBase, precoOverrides, statusOverrides, corretorOverrides, sales],
   );
 
   // Carrega histórico de status ao abrir o modal
