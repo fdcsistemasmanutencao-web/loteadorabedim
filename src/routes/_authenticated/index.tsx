@@ -203,6 +203,7 @@ type PersistedConfig = {
   empreendimento: string;
   total: number;
   perQuadra: number;
+  quadraSizes: Record<string, number>;
   precoOverrides: Record<string, number>;
   nomeOverrides: Record<string, string>;
   numeroOverrides: Record<string, string>;
@@ -211,6 +212,7 @@ type PersistedConfig = {
   sales: Record<string, Sale>;
   deletedIds: string[];
 };
+
 
 type EmpItem = { id: string; nome: string };
 
