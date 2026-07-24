@@ -32,7 +32,7 @@ function totalContratoCalc(financiado: number, n: number, mesesSemJuros: number 
   return s;
 }
 
-type Pagamento = { valor: number | null; data: string | null };
+type Pagamento = { valor: number | null; data: string | null; venc?: string | null };
 type Sale = {
   cliente: string;
   entrada: number;
@@ -193,6 +193,39 @@ const startOfToday = () => {
   return d;
 };
 const brDate = (d: Date) => d.toLocaleDateString("pt-BR");
+const isValidISODate = (v: string | null | undefined): boolean => {
+  if (!v) return false;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+  const [y, m, d] = v.split("-").map(Number);
+  if (y < 1900 || y > 2200 || m < 1 || m > 12) return false;
+  const dt = new Date(y, m - 1, d);
+  return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d;
+};
+const toISO = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+/** Vencimento da parcela i (0-indexado): usa ajuste manual se houver, senão calcula a partir da 1ª parcela. */
+function vencimentoParcela(sale: Sale, i: number): Date | null {
+  const manual = sale.pagamentos[i]?.venc;
+  if (isValidISODate(manual)) {
+    const [y, m, d] = manual!.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  }
+  if (!isValidISODate(sale.dataPrimeiraParcela)) return null;
+  return addMonths(sale.dataPrimeiraParcela!, i);
+}
+function validarPlano(sale: Sale): { dataPrimeiraParcela?: string; parcelas?: string } {
+  const errs: { dataPrimeiraParcela?: string; parcelas?: string } = {};
+  const n = sale.parcelas;
+  if (!Number.isInteger(n) || n < 1 || n > 360) {
+    errs.parcelas = "Informe um número inteiro de parcelas entre 1 e 360.";
+  }
+  if (!sale.dataPrimeiraParcela) {
+    errs.dataPrimeiraParcela = "Informe a data da 1ª parcela para calcular os vencimentos.";
+  } else if (!isValidISODate(sale.dataPrimeiraParcela)) {
+    errs.dataPrimeiraParcela = "Data inválida. Use o formato dia/mês/ano.";
+  }
+  return errs;
+}
 
 const LEGACY_STORAGE_KEY = "loteadora:config:v1";
 const EMPS_KEY = "loteadora:empreendimentos:v1";
@@ -741,6 +774,97 @@ function Index() {
     });
   };
 
+  /** Remove ajustes manuais de vencimento, voltando ao cálculo automático a partir da 1ª parcela. */
+  const recalcVencimentos = (id: string) => {
+    setSales((prev) => {
+      const base = prev[id] ?? (selected ? defaultSale(selected) : null);
+      if (!base) return prev;
+      const pagamentos = base.pagamentos.map((p) => ({ ...p, venc: null }));
+      return { ...prev, [id]: { ...base, pagamentos } };
+    });
+    toast.success("Vencimentos recalculados a partir da 1ª parcela.");
+  };
+
+  const exportarParcelas = async (formato: "pdf" | "xlsx") => {
+    if (!selected) return;
+    const s = sales[selected.id] ?? defaultSale(selected);
+    const sale: Sale = { ...s, mesesSemJuros: s.mesesSemJuros ?? DEFAULT_MESES_SEM_JUROS };
+    const errs = validarPlano(sale);
+    if (errs.parcelas || errs.dataPrimeiraParcela) {
+      toast.error(errs.parcelas ?? errs.dataPrimeiraParcela!);
+      return;
+    }
+    const live = lotes.find((l) => l.id === selected.id) ?? selected;
+    const financiado = Math.max(0, live.preco - sale.entrada);
+    const nomeLote = nomeOverrides[selected.id] ? `${nomeOverrides[selected.id]} (${selected.id})` : selected.id;
+    const rows = sale.pagamentos.slice(0, sale.parcelas).map((p, i) => {
+      const esperado = parcelaEsperadaMes(financiado, sale.parcelas, i + 1, sale.mesesSemJuros);
+      const venc = vencimentoParcela(sale, i);
+      const status = p.valor === null || p.valor === undefined ? "pendente" : p.valor < esperado - 0.005 ? "abaixo" : "ok";
+      return {
+        parcela: i + 1,
+        vencimento: venc ? brDate(venc) : "—",
+        ajuste: isValidISODate(p.venc) ? "manual" : "automático",
+        esperado: Number(esperado.toFixed(2)),
+        recebido: p.valor ?? null,
+        dataPagto: p.data ? brDate(new Date(`${p.data}T00:00:00`)) : "—",
+        status,
+      };
+    });
+    const titulo = `Parcelas ${nomeLote}`;
+    const baseName = `parcelas-${selected.id}`.replace(/[^\w.-]+/g, "_");
+
+    if (formato === "xlsx") {
+      const XLSX = await import("xlsx");
+      const ws = XLSX.utils.json_to_sheet(
+        rows.map((r) => ({
+          "#": r.parcela,
+          Vencimento: r.vencimento,
+          "Tipo vencimento": r.ajuste,
+          Esperado: r.esperado,
+          "Valor recebido": r.recebido,
+          "Data pagto": r.dataPagto,
+          Status: r.status,
+        })),
+      );
+      ws["!cols"] = [{ wch: 6 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 12 }];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Parcelas");
+      XLSX.writeFile(wb, `${baseName}.xlsx`);
+      toast.success("Excel gerado.");
+      return;
+    }
+
+    const { jsPDF } = await import("jspdf");
+    const autoTable = (await import("jspdf-autotable")).default;
+    const doc = new jsPDF({ orientation: "portrait", unit: "pt" });
+    doc.setFontSize(14);
+    doc.text(titulo, 40, 40);
+    doc.setFontSize(10);
+    doc.text(
+      `Cliente: ${sale.cliente || "—"}  |  1ª parcela: ${brDate(new Date(`${sale.dataPrimeiraParcela}T00:00:00`))}  |  Parcelas: ${sale.parcelas}`,
+      40,
+      58,
+    );
+    autoTable(doc, {
+      startY: 74,
+      head: [["#", "Vencimento", "Tipo", "Esperado", "Recebido", "Data pagto", "Status"]],
+      body: rows.map((r) => [
+        String(r.parcela),
+        r.vencimento,
+        r.ajuste,
+        brl(r.esperado),
+        r.recebido === null ? "—" : brl(r.recebido),
+        r.dataPagto,
+        r.status,
+      ]),
+      styles: { fontSize: 8, cellPadding: 3 },
+      headStyles: { fillColor: [30, 41, 59] },
+    });
+    doc.save(`${baseName}.pdf`);
+    toast.success("PDF gerado.");
+  };
+
   const toggle = (s: Status) => {
     const next = new Set(filters);
     if (next.has(s)) next.delete(s);
@@ -772,7 +896,7 @@ function Index() {
     const proximas: ParcelaInfo[] = [];
     for (const l of lotes) {
       const s = sales[l.id];
-      if (!s || !s.dataPrimeiraParcela) continue;
+      if (!s) continue;
       const financiado = Math.max(0, l.preco - s.entrada);
       const nome = nomeOverrides[l.id];
       const label = nome ? `${nome} (${l.id})` : l.id;
@@ -783,7 +907,8 @@ function Index() {
         const valor = pago?.valor;
         const quitada = valor !== null && valor !== undefined && valor >= esperado - 0.005;
         if (quitada) continue;
-        const venc = addMonths(s.dataPrimeiraParcela, i);
+        const venc = vencimentoParcela(s, i);
+        if (!venc) continue;
         const diffMs = today.getTime() - venc.getTime();
         const diasAtraso = Math.floor(diffMs / 86400000);
         const info: ParcelaInfo = {
@@ -1185,6 +1310,7 @@ function Index() {
             const parcelaBaseVal = parcelaBase(financiado, currentSale.parcelas);
             const totalPago = currentSale.pagamentos.reduce<number>((a, p) => a + (p.valor ?? 0), 0);
             const totalContrato = currentSale.entrada + totalContratoCalc(financiado, currentSale.parcelas, currentSale.mesesSemJuros);
+            const planoErros = validarPlano(currentSale);
             return (
               <>
                 <DialogHeader>
@@ -1449,8 +1575,24 @@ function Index() {
                       min={1}
                       max={360}
                       value={currentSale.parcelas}
-                      onChange={(e) => updateSale(selected.id, { parcelas: Math.max(1, Math.min(360, Number(e.target.value) || 1)) })}
+                      aria-invalid={!!planoErros.parcelas}
+                      onChange={(e) => {
+                        const raw = Number(e.target.value);
+                        if (!Number.isFinite(raw) || raw < 1) {
+                          updateSale(selected.id, { parcelas: 1 });
+                          return;
+                        }
+                        if (raw > 360) {
+                          toast.error("O número máximo de parcelas é 360.");
+                          updateSale(selected.id, { parcelas: 360 });
+                          return;
+                        }
+                        updateSale(selected.id, { parcelas: Math.round(raw) });
+                      }}
                     />
+                    {planoErros.parcelas && (
+                      <p className="mt-1 text-xs text-red-600 dark:text-red-400">{planoErros.parcelas}</p>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="data1a">Data da 1ª parcela</Label>
@@ -1458,15 +1600,21 @@ function Index() {
                       id="data1a"
                       type="date"
                       value={currentSale.dataPrimeiraParcela ?? ""}
+                      aria-invalid={!!planoErros.dataPrimeiraParcela}
                       onChange={(e) => {
                         const v = e.target.value;
                         updateSale(selected.id, { dataPrimeiraParcela: v === "" ? null : v });
                       }}
                     />
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Usada para calcular parcelas em atraso e a vencer.
-                    </p>
+                    {planoErros.dataPrimeiraParcela ? (
+                      <p className="mt-1 text-xs text-red-600 dark:text-red-400">{planoErros.dataPrimeiraParcela}</p>
+                    ) : (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Todos os vencimentos são recalculados automaticamente a partir desta data.
+                      </p>
+                    )}
                   </div>
+
                   <div className="sm:col-span-2">
                     <Label htmlFor="carencia">Meses sem juros (carência)</Label>
                     <Input
@@ -1509,12 +1657,28 @@ function Index() {
 
                 {/* Parcelas */}
                 <div className="mt-4">
-                  <div className="mb-2 flex items-center justify-between">
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                     <h3 className="text-sm font-semibold">Parcelas</h3>
-                    <div className="text-xs text-muted-foreground">
-                      Pago: <span className="font-medium text-foreground">{brl(totalPago)}</span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs text-muted-foreground">
+                        Pago: <span className="font-medium text-foreground">{brl(totalPago)}</span>
+                      </span>
+                      <Button size="sm" variant="outline" className="h-8" onClick={() => recalcVencimentos(selected.id)}>
+                        Recalcular vencimentos
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-8" onClick={() => exportarParcelas("pdf")}>
+                        PDF
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-8" onClick={() => exportarParcelas("xlsx")}>
+                        Excel
+                      </Button>
                     </div>
                   </div>
+                  {(planoErros.dataPrimeiraParcela || planoErros.parcelas) && (
+                    <p className="mb-2 text-xs text-red-600 dark:text-red-400">
+                      {planoErros.parcelas ?? planoErros.dataPrimeiraParcela}
+                    </p>
+                  )}
                   <div className="max-h-72 overflow-auto rounded-md border">
                     <table className="w-full min-w-[34rem] text-sm">
 
@@ -1545,11 +1709,35 @@ function Index() {
                           const anoLabel = mes <= currentSale.mesesSemJuros
                             ? "c"
                             : `a${Math.floor((mes - currentSale.mesesSemJuros - 1) / 12) + 2}`;
-                          const venc = currentSale.dataPrimeiraParcela ? addMonths(currentSale.dataPrimeiraParcela, i) : null;
+                          const manual = isValidISODate(pago.venc);
+                          const venc = vencimentoParcela(currentSale, i);
                           return (
                             <tr key={i} className={cn("border-t", rowClass)}>
                               <td className="px-3 py-1.5 text-muted-foreground">{i + 1} <span className="text-[10px] opacity-60">{anoLabel}</span></td>
-                              <td className="px-3 py-1.5 text-right tabular-nums text-muted-foreground">{venc ? brDate(venc) : "—"}</td>
+                              <td className="px-3 py-1.5 text-right">
+                                <div className="flex items-center justify-end gap-1">
+                                  <Input
+                                    type="date"
+                                    value={venc ? toISO(venc) : ""}
+                                    onChange={(e) => {
+                                      const v = e.target.value;
+                                      updatePagamento(selected.id, i, { venc: v === "" ? null : v });
+                                    }}
+                                    className={cn("ml-auto h-8 w-36", manual && "border-amber-500 bg-amber-500/10")}
+                                    title={manual ? "Vencimento ajustado manualmente" : "Vencimento automático"}
+                                  />
+                                  {manual && (
+                                    <button
+                                      type="button"
+                                      onClick={() => updatePagamento(selected.id, i, { venc: null })}
+                                      className="text-[10px] text-amber-600 underline dark:text-amber-400"
+                                      title="Voltar ao cálculo automático"
+                                    >
+                                      auto
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
                               <td className="px-3 py-1.5 text-right tabular-nums">{brl(esperado)}</td>
 
                               <td className="px-3 py-1.5 text-right">
