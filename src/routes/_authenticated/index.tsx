@@ -484,7 +484,7 @@ function Index() {
 
 
 
-  const lotesBase = useMemo(() => generateLotes(total, perQuadra), [total, perQuadra]);
+  const lotesBase = useMemo(() => generateLotes(total, perQuadra, quadraSizes), [total, perQuadra, quadraSizes]);
   const lotes = useMemo(
     () => lotesBase
       .filter((l) => !deletedIds.has(l.id))
