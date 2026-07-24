@@ -233,11 +233,12 @@ function Index() {
     if (cfg.precoOverrides) setPrecoOverrides(cfg.precoOverrides);
     if (cfg.nomeOverrides) setNomeOverrides(cfg.nomeOverrides);
     if (cfg.statusOverrides) setStatusOverrides(cfg.statusOverrides);
+    if (cfg.corretorOverrides) setCorretorOverrides(cfg.corretorOverrides);
     if (cfg.sales) setSales(cfg.sales);
   }, []);
 
   const salvarConfig = () => {
-    const payload: PersistedConfig = { total, perQuadra, precoOverrides, nomeOverrides, statusOverrides, sales };
+    const payload: PersistedConfig = { total, perQuadra, precoOverrides, nomeOverrides, statusOverrides, corretorOverrides, sales };
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     setSavedAt(new Date().toLocaleTimeString("pt-BR"));
   };
