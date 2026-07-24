@@ -360,6 +360,31 @@ function Index() {
       return next;
     });
 
+    if (novo === "disponivel") {
+      setSales((prev) => {
+        const next = { ...prev };
+        let changed = false;
+        for (const id of ids) {
+          if (id in next) {
+            delete next[id];
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+      setCorretorOverrides((prev) => {
+        const next = { ...prev };
+        let changed = false;
+        for (const id of ids) {
+          if (id in next) {
+            delete next[id];
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+    }
+
     if (extras?.corretor) {
       const corretor = extras.corretor;
       setCorretorOverrides((prev) => {
