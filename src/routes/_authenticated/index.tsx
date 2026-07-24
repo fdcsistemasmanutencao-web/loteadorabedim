@@ -37,6 +37,7 @@ type Sale = {
   entrada: number;
   parcelas: number;
   mesesSemJuros: number;
+  dataPrimeiraParcela?: string | null;
   pagamentos: Pagamento[];
 };
 
