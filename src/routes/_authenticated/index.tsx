@@ -280,6 +280,11 @@ function Index() {
   const [accountOpen, setAccountOpen] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [cpf, setCpf] = useState("");
+  const [celular, setCelular] = useState("");
+  const [endereco, setEndereco] = useState("");
+  const [bairro, setBairro] = useState("");
+  const [cidade, setCidade] = useState("");
   const [savingAccount, setSavingAccount] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [changingPwd, setChangingPwd] = useState(false);
@@ -307,11 +312,16 @@ function Index() {
       if (u?.id) {
         const { data: p } = await supabase
           .from("profiles")
-          .select("display_name, avatar_url")
+          .select("display_name, avatar_url, cpf, celular, endereco, bairro, cidade")
           .eq("id", u.id)
           .maybeSingle();
         setDisplayName(p?.display_name ?? "");
         setAvatarUrl(p?.avatar_url ?? "");
+        setCpf(p?.cpf ?? "");
+        setCelular(p?.celular ?? "");
+        setEndereco(p?.endereco ?? "");
+        setBairro(p?.bairro ?? "");
+        setCidade(p?.cidade ?? "");
       }
     });
   }, []);
@@ -321,7 +331,15 @@ function Index() {
     setSavingAccount(true);
     const { error } = await supabase
       .from("profiles")
-      .update({ display_name: displayName || null, avatar_url: avatarUrl || null })
+      .update({
+        display_name: displayName || null,
+        avatar_url: avatarUrl || null,
+        cpf: cpf || null,
+        celular: celular || null,
+        endereco: endereco || null,
+        bairro: bairro || null,
+        cidade: cidade || null,
+      })
       .eq("id", userId);
     setSavingAccount(false);
     if (error) toast.error("Erro ao salvar: " + error.message);
@@ -1602,6 +1620,26 @@ function Index() {
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="Seu nome"
                 />
+              </div>
+              <div>
+                <Label htmlFor="acc-cpf">CPF (opcional)</Label>
+                <Input id="acc-cpf" value={cpf} onChange={(e) => setCpf(e.target.value)} placeholder="000.000.000-00" />
+              </div>
+              <div>
+                <Label htmlFor="acc-cel">Celular</Label>
+                <Input id="acc-cel" value={celular} onChange={(e) => setCelular(e.target.value)} placeholder="(00) 00000-0000" />
+              </div>
+              <div className="sm:col-span-2">
+                <Label htmlFor="acc-end">Endereço</Label>
+                <Input id="acc-end" value={endereco} onChange={(e) => setEndereco(e.target.value)} placeholder="Rua, número, complemento" />
+              </div>
+              <div>
+                <Label htmlFor="acc-bairro">Bairro</Label>
+                <Input id="acc-bairro" value={bairro} onChange={(e) => setBairro(e.target.value)} />
+              </div>
+              <div>
+                <Label htmlFor="acc-cidade">Cidade</Label>
+                <Input id="acc-cidade" value={cidade} onChange={(e) => setCidade(e.target.value)} />
               </div>
               {userCreatedAt && (
                 <div className="sm:col-span-2">
