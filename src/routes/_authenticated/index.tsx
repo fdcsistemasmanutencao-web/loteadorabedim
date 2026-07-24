@@ -220,8 +220,13 @@ function Index() {
 
   const lotesBase = useMemo(() => generateLotes(total, perQuadra), [total, perQuadra]);
   const lotes = useMemo(
-    () => lotesBase.map((l) => (precoOverrides[l.id] != null ? { ...l, preco: precoOverrides[l.id] } : l)),
-    [lotesBase, precoOverrides],
+    () => lotesBase.map((l) => {
+      const next = { ...l };
+      if (precoOverrides[l.id] != null) next.preco = precoOverrides[l.id];
+      if (statusOverrides[l.id]) next.status = statusOverrides[l.id];
+      return next;
+    }),
+    [lotesBase, precoOverrides, statusOverrides],
   );
 
   const currentSale = selected
