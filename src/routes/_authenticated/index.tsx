@@ -279,6 +279,9 @@ function Index() {
   const [empreendimentoEdit, setEmpreendimentoEdit] = useState(false);
   const [total, setTotal] = useState(150);
   const [perQuadra, setPerQuadra] = useState(15);
+  const [quadraSizes, setQuadraSizes] = useState<Record<string, number>>({});
+  const [quadraDialogOpen, setQuadraDialogOpen] = useState(false);
+
   const [sales, setSales] = useState<Record<string, Sale>>({});
   const [precoOverrides, setPrecoOverrides] = useState<Record<string, number>>({});
   const [nomeOverrides, setNomeOverrides] = useState<Record<string, string>>({});
