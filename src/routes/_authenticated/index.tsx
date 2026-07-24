@@ -527,6 +527,59 @@ function Index() {
     return c;
   }, [lotes]);
 
+  type ParcelaInfo = {
+    lotId: string;
+    lotLabel: string;
+    cliente: string;
+    numero: number;
+    total: number;
+    vencimento: Date;
+    esperado: number;
+    diasAtraso: number; // >0 atrasado, <=0 dias até vencer (negativo)
+  };
+  const parcelasInfo = useMemo(() => {
+    const today = startOfToday();
+    const in30 = new Date(today);
+    in30.setDate(in30.getDate() + 30);
+    const atrasadas: ParcelaInfo[] = [];
+    const proximas: ParcelaInfo[] = [];
+    for (const l of lotes) {
+      const s = sales[l.id];
+      if (!s || !s.dataPrimeiraParcela) continue;
+      const financiado = Math.max(0, l.preco - s.entrada);
+      const nome = nomeOverrides[l.id];
+      const label = nome ? `${nome} (${l.id})` : l.id;
+      const mesesSemJuros = s.mesesSemJuros ?? DEFAULT_MESES_SEM_JUROS;
+      for (let i = 0; i < s.parcelas; i++) {
+        const pago = s.pagamentos[i];
+        const esperado = parcelaEsperadaMes(financiado, s.parcelas, i + 1, mesesSemJuros);
+        const valor = pago?.valor;
+        const quitada = valor !== null && valor !== undefined && valor >= esperado - 0.005;
+        if (quitada) continue;
+        const venc = addMonths(s.dataPrimeiraParcela, i);
+        const diffMs = today.getTime() - venc.getTime();
+        const diasAtraso = Math.floor(diffMs / 86400000);
+        const info: ParcelaInfo = {
+          lotId: l.id,
+          lotLabel: label,
+          cliente: s.cliente || l.cliente || "—",
+          numero: i + 1,
+          total: s.parcelas,
+          vencimento: venc,
+          esperado,
+          diasAtraso,
+        };
+        if (venc < today) atrasadas.push(info);
+        else if (venc <= in30) proximas.push(info);
+      }
+    }
+    atrasadas.sort((a, b) => b.diasAtraso - a.diasAtraso);
+    proximas.sort((a, b) => a.vencimento.getTime() - b.vencimento.getTime());
+    const somaAtrasadas = atrasadas.reduce((a, p) => a + p.esperado, 0);
+    const somaProximas = proximas.reduce((a, p) => a + p.esperado, 0);
+    return { atrasadas, proximas, somaAtrasadas, somaProximas };
+  }, [lotes, sales, nomeOverrides]);
+
   const quadras = useMemo(() => {
     const grouped: Record<string, Lote[]> = {};
     for (const l of lotes) {
@@ -539,7 +592,7 @@ function Index() {
       (grouped[l.quadra] ||= []).push(l);
     }
     return grouped;
-  }, [lotes, filters, search]);
+  }, [lotes, filters, search, nomeOverrides]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
