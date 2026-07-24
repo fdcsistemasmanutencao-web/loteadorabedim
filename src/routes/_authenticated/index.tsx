@@ -1190,6 +1190,30 @@ function Index() {
                       placeholder={`Ex.: ${selected.id} (padrão)`}
                       className="h-8"
                     />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 border-rose-300 text-rose-700 hover:bg-rose-50 dark:border-rose-900 dark:text-rose-300 dark:hover:bg-rose-950"
+                      onClick={() => {
+                        const nome = nomeOverrides[selected.id] ?? selected.id;
+                        if (!window.confirm(`Excluir o lote "${nome}"? Esta ação remove o lote do mapa junto com seus dados de venda.`)) return;
+                        const id = selected.id;
+                        setDeletedIds((prev) => {
+                          const next = new Set(prev);
+                          next.add(id);
+                          return next;
+                        });
+                        setNomeOverrides((prev) => { const n = { ...prev }; delete n[id]; return n; });
+                        setStatusOverrides((prev) => { const n = { ...prev }; delete n[id]; return n; });
+                        setCorretorOverrides((prev) => { const n = { ...prev }; delete n[id]; return n; });
+                        setPrecoOverrides((prev) => { const n = { ...prev }; delete n[id]; return n; });
+                        setSales((prev) => { const n = { ...prev }; delete n[id]; return n; });
+                        setSelected(null);
+                        toast.success("Lote excluído");
+                      }}
+                    >
+                      <Trash2 className="mr-1 h-4 w-4" /> Excluir
+                    </Button>
                   </div>
                 </DialogHeader>
 
