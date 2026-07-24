@@ -965,6 +965,62 @@ function Index() {
         </DialogContent>
 
       </Dialog>
+
+      <Dialog open={bulkPendingStatus !== null} onOpenChange={(o) => !o && setBulkPendingStatus(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {bulkPendingStatus === "vendido" ? "Vender lotes em massa" : "Reservar lotes em massa"}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedIds.size} lote(s) selecionado(s). Informe os dados abaixo para concluir.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-2 space-y-3">
+            <div>
+              <Label htmlFor="bulk-corretor">Corretor responsável *</Label>
+              <Input
+                id="bulk-corretor"
+                value={bulkCorretor}
+                maxLength={120}
+                onChange={(e) => setBulkCorretor(e.target.value)}
+                placeholder="Nome do corretor"
+                aria-invalid={!!bulkErrors.corretor}
+              />
+              {bulkErrors.corretor && (
+                <p className="mt-1 text-xs text-red-600 dark:text-red-400">{bulkErrors.corretor}</p>
+              )}
+            </div>
+            {bulkPendingStatus === "vendido" && (
+              <div>
+                <Label htmlFor="bulk-cliente">Cliente comprador *</Label>
+                <Input
+                  id="bulk-cliente"
+                  value={bulkCliente}
+                  maxLength={120}
+                  onChange={(e) => setBulkCliente(e.target.value)}
+                  placeholder="Nome do cliente"
+                  aria-invalid={!!bulkErrors.cliente}
+                />
+                {bulkErrors.cliente && (
+                  <p className="mt-1 text-xs text-red-600 dark:text-red-400">{bulkErrors.cliente}</p>
+                )}
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Será aplicado a todos os lotes selecionados. Ajustes individuais podem ser feitos depois no lote.
+                </p>
+              </div>
+            )}
+          </div>
+          <div className="mt-4 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setBulkPendingStatus(null)} disabled={bulkBusy}>
+              Cancelar
+            </Button>
+            <Button onClick={confirmBulkAssignment} disabled={bulkBusy}>
+              {bulkBusy ? "Aplicando…" : "Confirmar"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
