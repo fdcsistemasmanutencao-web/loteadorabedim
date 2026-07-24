@@ -198,6 +198,7 @@ type PersistedConfig = {
   perQuadra: number;
   precoOverrides: Record<string, number>;
   nomeOverrides: Record<string, string>;
+  numeroOverrides: Record<string, string>;
   statusOverrides: Record<string, Status>;
   corretorOverrides: Record<string, string>;
   sales: Record<string, Sale>;
@@ -272,6 +273,7 @@ function Index() {
   const [sales, setSales] = useState<Record<string, Sale>>({});
   const [precoOverrides, setPrecoOverrides] = useState<Record<string, number>>({});
   const [nomeOverrides, setNomeOverrides] = useState<Record<string, string>>({});
+  const [numeroOverrides, setNumeroOverrides] = useState<Record<string, string>>({});
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
   const [statusOverrides, setStatusOverrides] = useState<Record<string, Status>>({});
   const [corretorOverrides, setCorretorOverrides] = useState<Record<string, string>>({});
@@ -377,6 +379,7 @@ function Index() {
     setPerQuadra(cfg.perQuadra ?? 15);
     setPrecoOverrides(cfg.precoOverrides ?? {});
     setNomeOverrides(cfg.nomeOverrides ?? {});
+    setNumeroOverrides(cfg.numeroOverrides ?? {});
     setDeletedIds(new Set(cfg.deletedIds ?? []));
     setStatusOverrides(cfg.statusOverrides ?? {});
     setCorretorOverrides(cfg.corretorOverrides ?? {});
@@ -395,7 +398,7 @@ function Index() {
 
   const persistConfigFor = (id: string) => {
     if (!id) return;
-    const payload: PersistedConfig = { empreendimento, total, perQuadra, precoOverrides, nomeOverrides, statusOverrides, corretorOverrides, sales, deletedIds: Array.from(deletedIds) };
+    const payload: PersistedConfig = { empreendimento, total, perQuadra, precoOverrides, nomeOverrides, numeroOverrides, statusOverrides, corretorOverrides, sales, deletedIds: Array.from(deletedIds) };
     window.localStorage.setItem(configKey(id), JSON.stringify(payload));
   };
 
