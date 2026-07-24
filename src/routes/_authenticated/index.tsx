@@ -285,6 +285,20 @@ function Index() {
       else next[selected.id] = novo;
       return next;
     });
+    if (novo === "disponivel") {
+      setSales((prev) => {
+        if (!(selected.id in prev)) return prev;
+        const next = { ...prev };
+        delete next[selected.id];
+        return next;
+      });
+      setCorretorOverrides((prev) => {
+        if (!(selected.id in prev)) return prev;
+        const next = { ...prev };
+        delete next[selected.id];
+        return next;
+      });
+    }
     const { data, error } = await supabase
       .from("lot_status_history")
       .insert({
