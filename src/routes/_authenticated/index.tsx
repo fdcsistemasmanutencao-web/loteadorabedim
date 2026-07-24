@@ -1234,6 +1234,7 @@ function Index() {
                           return next;
                         });
                         setNomeOverrides((prev) => { const n = { ...prev }; delete n[id]; return n; });
+                        setNumeroOverrides((prev) => { const n = { ...prev }; delete n[id]; return n; });
                         setStatusOverrides((prev) => { const n = { ...prev }; delete n[id]; return n; });
                         setCorretorOverrides((prev) => { const n = { ...prev }; delete n[id]; return n; });
                         setPrecoOverrides((prev) => { const n = { ...prev }; delete n[id]; return n; });
