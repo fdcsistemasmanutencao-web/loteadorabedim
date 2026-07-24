@@ -1193,7 +1193,8 @@ function Index() {
                         });
                       }}
                       placeholder={`Ex.: ${selected.id} (padrão)`}
-                      className="h-8"
+                      className="h-8 min-w-[10rem] flex-1"
+
                     />
                     <Button
                       variant="outline"
