@@ -180,7 +180,11 @@ const startOfToday = () => {
 };
 const brDate = (d: Date) => d.toLocaleDateString("pt-BR");
 
-const STORAGE_KEY = "loteadora:config:v1";
+const LEGACY_STORAGE_KEY = "loteadora:config:v1";
+const EMPS_KEY = "loteadora:empreendimentos:v1";
+const ACTIVE_KEY = "loteadora:active:v1";
+const configKey = (id: string) => `loteadora:config:v1:${id}`;
+
 type PersistedConfig = {
   empreendimento: string;
   total: number;
@@ -192,17 +196,60 @@ type PersistedConfig = {
   sales: Record<string, Sale>;
 };
 
+type EmpItem = { id: string; nome: string };
+
 const DEFAULT_EMPREENDIMENTO = "";
 
-function loadConfig(): Partial<PersistedConfig> {
-  if (typeof window === "undefined") return {};
+function newId() {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    return crypto.randomUUID();
+  } catch {
+    return `emp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  }
+}
+
+function loadEmpList(): { list: EmpItem[]; activeId: string } {
+  if (typeof window === "undefined") return { list: [], activeId: "" };
+  try {
+    const raw = window.localStorage.getItem(EMPS_KEY);
+    let list: EmpItem[] = raw ? (JSON.parse(raw) as EmpItem[]) : [];
+    if (!Array.isArray(list) || list.length === 0) {
+      // Migração da configuração antiga (single-empreendimento)
+      const legacy = window.localStorage.getItem(LEGACY_STORAGE_KEY);
+      const id = newId();
+      if (legacy) {
+        try {
+          const parsed = JSON.parse(legacy) as Partial<PersistedConfig>;
+          list = [{ id, nome: parsed.empreendimento || "" }];
+          window.localStorage.setItem(configKey(id), legacy);
+        } catch {
+          list = [{ id, nome: "" }];
+        }
+      } else {
+        list = [{ id, nome: "" }];
+      }
+      window.localStorage.setItem(EMPS_KEY, JSON.stringify(list));
+      window.localStorage.setItem(ACTIVE_KEY, id);
+      return { list, activeId: id };
+    }
+    let activeId = window.localStorage.getItem(ACTIVE_KEY) || list[0].id;
+    if (!list.find((e) => e.id === activeId)) activeId = list[0].id;
+    return { list, activeId };
+  } catch {
+    return { list: [], activeId: "" };
+  }
+}
+
+function loadConfigFor(id: string): Partial<PersistedConfig> {
+  if (typeof window === "undefined" || !id) return {};
+  try {
+    const raw = window.localStorage.getItem(configKey(id));
     return raw ? (JSON.parse(raw) as Partial<PersistedConfig>) : {};
   } catch {
     return {};
   }
 }
+
 
 function Index() {
   const navigate = useNavigate();
@@ -232,6 +279,11 @@ function Index() {
   const [bulkCliente, setBulkCliente] = useState("");
   const [bulkErrors, setBulkErrors] = useState<{ corretor?: string; cliente?: string }>({});
 
+  // Multi-empreendimento
+  const [empList, setEmpList] = useState<EmpItem[]>([]);
+  const [activeEmpId, setActiveEmpId] = useState<string>("");
+  const [empsLoaded, setEmpsLoaded] = useState(false);
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setUserEmail(data.user?.email ?? null);
@@ -246,24 +298,100 @@ function Index() {
     navigate({ to: "/auth", replace: true });
   };
 
-  // Carregar configuração salva
+  // Aplicar uma configuração ao estado (ou resetar para defaults)
+  const applyConfig = (cfg: Partial<PersistedConfig>) => {
+    setEmpreendimento(cfg.empreendimento ?? DEFAULT_EMPREENDIMENTO);
+    setTotal(cfg.total ?? 150);
+    setPerQuadra(cfg.perQuadra ?? 15);
+    setPrecoOverrides(cfg.precoOverrides ?? {});
+    setNomeOverrides(cfg.nomeOverrides ?? {});
+    setStatusOverrides(cfg.statusOverrides ?? {});
+    setCorretorOverrides(cfg.corretorOverrides ?? {});
+    setSales(cfg.sales ?? {});
+    setSavedAt(null);
+  };
+
+  // Carregar lista de empreendimentos + configuração ativa (na montagem)
   useEffect(() => {
-    const cfg = loadConfig();
-    if (cfg.empreendimento) setEmpreendimento(cfg.empreendimento);
-    if (cfg.total) setTotal(cfg.total);
-    if (cfg.perQuadra) setPerQuadra(cfg.perQuadra);
-    if (cfg.precoOverrides) setPrecoOverrides(cfg.precoOverrides);
-    if (cfg.nomeOverrides) setNomeOverrides(cfg.nomeOverrides);
-    if (cfg.statusOverrides) setStatusOverrides(cfg.statusOverrides);
-    if (cfg.corretorOverrides) setCorretorOverrides(cfg.corretorOverrides);
-    if (cfg.sales) setSales(cfg.sales);
+    const { list, activeId } = loadEmpList();
+    setEmpList(list);
+    setActiveEmpId(activeId);
+    applyConfig(loadConfigFor(activeId));
+    setEmpsLoaded(true);
   }, []);
 
-  const salvarConfig = () => {
+  const persistConfigFor = (id: string) => {
+    if (!id) return;
     const payload: PersistedConfig = { empreendimento, total, perQuadra, precoOverrides, nomeOverrides, statusOverrides, corretorOverrides, sales };
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    window.localStorage.setItem(configKey(id), JSON.stringify(payload));
+  };
+
+  const salvarConfig = () => {
+    if (!activeEmpId) return;
+    persistConfigFor(activeEmpId);
+    // Atualiza o nome do empreendimento na lista
+    setEmpList((prev) => {
+      const next = prev.map((e) => (e.id === activeEmpId ? { ...e, nome: empreendimento } : e));
+      window.localStorage.setItem(EMPS_KEY, JSON.stringify(next));
+      return next;
+    });
     setSavedAt(new Date().toLocaleTimeString("pt-BR"));
   };
+
+  const switchEmpreendimento = (id: string) => {
+    if (!id || id === activeEmpId) return;
+    // Salva o atual antes de trocar (auto-save)
+    if (activeEmpId) {
+      persistConfigFor(activeEmpId);
+      setEmpList((prev) => {
+        const next = prev.map((e) => (e.id === activeEmpId ? { ...e, nome: empreendimento } : e));
+        window.localStorage.setItem(EMPS_KEY, JSON.stringify(next));
+        return next;
+      });
+    }
+    window.localStorage.setItem(ACTIVE_KEY, id);
+    setActiveEmpId(id);
+    applyConfig(loadConfigFor(id));
+  };
+
+  const criarEmpreendimento = () => {
+    const nome = window.prompt("Nome do novo empreendimento (pode deixar em branco):", "") ?? "";
+    if (nome === null) return;
+    // Salva o atual antes
+    if (activeEmpId) persistConfigFor(activeEmpId);
+    const id = newId();
+    const item: EmpItem = { id, nome: nome.trim() };
+    setEmpList((prev) => {
+      const next = [...prev.map((e) => (e.id === activeEmpId ? { ...e, nome: empreendimento } : e)), item];
+      window.localStorage.setItem(EMPS_KEY, JSON.stringify(next));
+      return next;
+    });
+    window.localStorage.setItem(ACTIVE_KEY, id);
+    setActiveEmpId(id);
+    applyConfig({ empreendimento: item.nome });
+    setEmpreendimentoEdit(!item.nome);
+  };
+
+  const excluirEmpreendimento = () => {
+    if (!activeEmpId) return;
+    if (empList.length <= 1) {
+      window.alert("Não é possível excluir: mantenha ao menos um empreendimento.");
+      return;
+    }
+    const atual = empList.find((e) => e.id === activeEmpId);
+    const ok = window.confirm(`Excluir "${atual?.nome || "(sem nome)"}"? Esta ação não pode ser desfeita.`);
+    if (!ok) return;
+    window.localStorage.removeItem(configKey(activeEmpId));
+    const remaining = empList.filter((e) => e.id !== activeEmpId);
+    const nextId = remaining[0].id;
+    window.localStorage.setItem(EMPS_KEY, JSON.stringify(remaining));
+    window.localStorage.setItem(ACTIVE_KEY, nextId);
+    setEmpList(remaining);
+    setActiveEmpId(nextId);
+    applyConfig(loadConfigFor(nextId));
+  };
+
+
 
   const lotesBase = useMemo(() => generateLotes(total, perQuadra), [total, perQuadra]);
   const lotes = useMemo(
@@ -635,7 +763,35 @@ function Index() {
               </button>
             )}
           </div>
-          <div className="flex w-full items-center gap-2 md:w-auto">
+          <div className="flex w-full flex-wrap items-center gap-2 md:w-auto">
+            <label className="flex items-center gap-1 text-xs text-muted-foreground">
+              <span className="hidden sm:inline">Empreendimento</span>
+              <select
+                value={activeEmpId}
+                onChange={(e) => switchEmpreendimento(e.target.value)}
+                className="h-9 max-w-[180px] rounded-md border border-input bg-background px-2 text-sm"
+                title="Trocar de empreendimento"
+              >
+                {empList.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.nome || "(sem nome)"}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Button variant="outline" size="sm" onClick={criarEmpreendimento} className="h-9" title="Novo empreendimento">
+              + Novo
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={excluirEmpreendimento}
+              disabled={empList.length <= 1}
+              className="h-9"
+              title="Excluir empreendimento atual"
+            >
+              Excluir
+            </Button>
             <div className="flex-1 md:w-72">
               <Input
                 placeholder="Buscar por lote, cliente ou corretor…"
@@ -653,6 +809,7 @@ function Index() {
           </div>
         </div>
       </header>
+
 
       <main className="mx-auto max-w-7xl px-6 py-6">
         {/* Filtros / Legenda */}
