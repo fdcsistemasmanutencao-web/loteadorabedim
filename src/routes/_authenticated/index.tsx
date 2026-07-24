@@ -1176,7 +1176,7 @@ function Index() {
                   <DialogDescription>
                     Quadra {selected.quadra} · Lote {selected.numero} · {selected.area} m² · Valor {brl(preco)}
                   </DialogDescription>
-                  <div className="mt-3 flex items-center gap-2">
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
                     <Label htmlFor="nomeLoteTop" className="whitespace-nowrap text-xs text-muted-foreground">
                       Nome do lote
                     </Label>
