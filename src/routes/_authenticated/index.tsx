@@ -1575,8 +1575,24 @@ function Index() {
                       min={1}
                       max={360}
                       value={currentSale.parcelas}
-                      onChange={(e) => updateSale(selected.id, { parcelas: Math.max(1, Math.min(360, Number(e.target.value) || 1)) })}
+                      aria-invalid={!!planoErros.parcelas}
+                      onChange={(e) => {
+                        const raw = Number(e.target.value);
+                        if (!Number.isFinite(raw) || raw < 1) {
+                          updateSale(selected.id, { parcelas: 1 });
+                          return;
+                        }
+                        if (raw > 360) {
+                          toast.error("O número máximo de parcelas é 360.");
+                          updateSale(selected.id, { parcelas: 360 });
+                          return;
+                        }
+                        updateSale(selected.id, { parcelas: Math.round(raw) });
+                      }}
                     />
+                    {planoErros.parcelas && (
+                      <p className="mt-1 text-xs text-red-600 dark:text-red-400">{planoErros.parcelas}</p>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="data1a">Data da 1ª parcela</Label>
@@ -1584,15 +1600,21 @@ function Index() {
                       id="data1a"
                       type="date"
                       value={currentSale.dataPrimeiraParcela ?? ""}
+                      aria-invalid={!!planoErros.dataPrimeiraParcela}
                       onChange={(e) => {
                         const v = e.target.value;
                         updateSale(selected.id, { dataPrimeiraParcela: v === "" ? null : v });
                       }}
                     />
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Usada para calcular parcelas em atraso e a vencer.
-                    </p>
+                    {planoErros.dataPrimeiraParcela ? (
+                      <p className="mt-1 text-xs text-red-600 dark:text-red-400">{planoErros.dataPrimeiraParcela}</p>
+                    ) : (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Todos os vencimentos são recalculados automaticamente a partir desta data.
+                      </p>
+                    )}
                   </div>
+
                   <div className="sm:col-span-2">
                     <Label htmlFor="carencia">Meses sem juros (carência)</Label>
                     <Input
