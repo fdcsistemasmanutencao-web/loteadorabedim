@@ -249,6 +249,7 @@ function Index() {
   // Carregar configuração salva
   useEffect(() => {
     const cfg = loadConfig();
+    if (cfg.empreendimento) setEmpreendimento(cfg.empreendimento);
     if (cfg.total) setTotal(cfg.total);
     if (cfg.perQuadra) setPerQuadra(cfg.perQuadra);
     if (cfg.precoOverrides) setPrecoOverrides(cfg.precoOverrides);
@@ -259,7 +260,7 @@ function Index() {
   }, []);
 
   const salvarConfig = () => {
-    const payload: PersistedConfig = { total, perQuadra, precoOverrides, nomeOverrides, statusOverrides, corretorOverrides, sales };
+    const payload: PersistedConfig = { empreendimento, total, perQuadra, precoOverrides, nomeOverrides, statusOverrides, corretorOverrides, sales };
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     setSavedAt(new Date().toLocaleTimeString("pt-BR"));
   };
