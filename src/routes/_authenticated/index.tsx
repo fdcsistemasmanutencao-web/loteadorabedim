@@ -1763,6 +1763,53 @@ function Index() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={quadraDialogOpen} onOpenChange={setQuadraDialogOpen}>
+        <DialogContent className="w-[calc(100vw-1.5rem)] max-h-[85vh] overflow-auto sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Lotes por quadra</DialogTitle>
+            <DialogDescription>
+              Defina quantos lotes cada quadra terá. Deixe em branco para usar o padrão global ({perQuadra}).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-2 space-y-2">
+            {Object.keys(quadras).length === 0 && (
+              <p className="text-sm text-muted-foreground">Nenhuma quadra gerada ainda.</p>
+            )}
+            {Object.keys(quadras).map((q) => {
+              const val = quadraSizes[q];
+              return (
+                <div key={q} className="flex items-center gap-3">
+                  <span className="w-16 text-sm font-medium">Quadra {q}</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={200}
+                    value={val ?? ""}
+                    placeholder={String(perQuadra)}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      setQuadraSizes((prev) => {
+                        const next = { ...prev };
+                        if (raw === "") delete next[q];
+                        else next[q] = Math.max(1, Math.min(200, Number(raw) || 1));
+                        return next;
+                      });
+                    }}
+                    className="h-8 w-24"
+                  />
+                  <span className="text-xs text-muted-foreground">{quadras[q]?.length ?? 0} atuais</span>
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-4 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setQuadraSizes({})}>Limpar todas</Button>
+            <Button onClick={() => setQuadraDialogOpen(false)}>Fechar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
