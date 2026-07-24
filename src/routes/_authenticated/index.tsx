@@ -848,6 +848,10 @@ function Index() {
             {userEmail && (
               <span className="hidden text-xs text-muted-foreground lg:inline">{userEmail}</span>
             )}
+            <Button variant="outline" size="sm" onClick={() => setAccountOpen(true)} title="Minha conta">
+              <Settings className="h-4 w-4" />
+              <span className="ml-1 hidden sm:inline">Conta</span>
+            </Button>
             <Button variant="outline" size="sm" onClick={handleSignOut} title="Sair">
               <LogOut className="h-4 w-4" />
               <span className="ml-1 hidden sm:inline">Sair</span>
