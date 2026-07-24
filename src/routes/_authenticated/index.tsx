@@ -39,6 +39,12 @@ type Sale = {
   parcelas: number;
   mesesSemJuros: number;
   dataPrimeiraParcela?: string | null;
+  email?: string;
+  celular?: string;
+  cpf?: string;
+  endereco?: string;
+  bairro?: string;
+  cidade?: string;
   pagamentos: Pagamento[];
 };
 
@@ -1233,6 +1239,66 @@ function Index() {
                       value={currentSale.cliente}
                       onChange={(e) => updateSale(selected.id, { cliente: e.target.value })}
                       placeholder="Nome do comprador"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="cli-cpf">CPF (opcional)</Label>
+                    <Input
+                      id="cli-cpf"
+                      value={currentSale.cpf ?? ""}
+                      maxLength={20}
+                      onChange={(e) => updateSale(selected.id, { cpf: e.target.value })}
+                      placeholder="000.000.000-00"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="cli-cel">Celular</Label>
+                    <Input
+                      id="cli-cel"
+                      type="tel"
+                      value={currentSale.celular ?? ""}
+                      maxLength={20}
+                      onChange={(e) => updateSale(selected.id, { celular: e.target.value })}
+                      placeholder="(00) 00000-0000"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="cli-email">E-mail</Label>
+                    <Input
+                      id="cli-email"
+                      type="email"
+                      value={currentSale.email ?? ""}
+                      maxLength={255}
+                      onChange={(e) => updateSale(selected.id, { email: e.target.value })}
+                      placeholder="cliente@exemplo.com"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label htmlFor="cli-end">Endereço</Label>
+                    <Input
+                      id="cli-end"
+                      value={currentSale.endereco ?? ""}
+                      maxLength={200}
+                      onChange={(e) => updateSale(selected.id, { endereco: e.target.value })}
+                      placeholder="Rua, número, complemento"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="cli-bairro">Bairro</Label>
+                    <Input
+                      id="cli-bairro"
+                      value={currentSale.bairro ?? ""}
+                      maxLength={100}
+                      onChange={(e) => updateSale(selected.id, { bairro: e.target.value })}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label htmlFor="cli-cidade">Cidade</Label>
+                    <Input
+                      id="cli-cidade"
+                      value={currentSale.cidade ?? ""}
+                      maxLength={100}
+                      onChange={(e) => updateSale(selected.id, { cidade: e.target.value })}
                     />
                   </div>
                   <div className="sm:col-span-3">
