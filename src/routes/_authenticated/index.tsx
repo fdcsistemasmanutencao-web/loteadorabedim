@@ -952,6 +952,8 @@ function Index() {
 
   const quadras = useMemo(() => {
     const grouped: Record<string, Lote[]> = {};
+    // garante que toda quadra existente apareça (mesmo vazia) para receber lotes arrastados
+    for (const l of lotes) grouped[l.quadra] ||= [];
     for (const l of lotes) {
       if (!filters.has(l.status)) continue;
       if (search) {
@@ -959,9 +961,9 @@ function Index() {
         const hay = `${l.id} ${numeroOverrides[l.id] ?? ""} ${nomeOverrides[l.id] ?? ""} ${l.cliente ?? ""} ${l.corretor ?? ""}`.toLowerCase();
         if (!hay.includes(q)) continue;
       }
-      (grouped[l.quadra] ||= []).push(l);
+      grouped[l.quadra].push(l);
     }
-    return grouped;
+    return Object.fromEntries(Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b)));
   }, [lotes, filters, search, nomeOverrides, numeroOverrides]);
 
   return (
