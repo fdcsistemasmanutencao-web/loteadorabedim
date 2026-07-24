@@ -40,6 +40,15 @@ type Sale = {
   pagamentos: Pagamento[];
 };
 
+type StatusHistoryEntry = {
+  id: string;
+  lot_id: string;
+  from_status: Status | null;
+  to_status: Status;
+  changed_by_email: string | null;
+  created_at: string;
+};
+
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
     meta: [
