@@ -244,6 +244,51 @@ function Index() {
     [lotesBase, precoOverrides, statusOverrides],
   );
 
+  // Carrega histórico de status ao abrir o modal
+  useEffect(() => {
+    if (!selected || !userId) {
+      setHistory([]);
+      return;
+    }
+    setHistoryLoading(true);
+    supabase
+      .from("lot_status_history")
+      .select("*")
+      .eq("lot_id", selected.id)
+      .order("created_at", { ascending: false })
+      .limit(50)
+      .then(({ data }) => {
+        setHistory((data ?? []) as StatusHistoryEntry[]);
+        setHistoryLoading(false);
+      });
+  }, [selected, userId]);
+
+  const changeStatus = async (novo: Status) => {
+    if (!selected || !userId) return;
+    const atual = live?.status ?? selected.status;
+    if (novo === atual) return;
+    setStatusOverrides((prev) => {
+      const next = { ...prev };
+      if (novo === selected.status) delete next[selected.id];
+      else next[selected.id] = novo;
+      return next;
+    });
+    const { data, error } = await supabase
+      .from("lot_status_history")
+      .insert({
+        user_id: userId,
+        lot_id: selected.id,
+        from_status: atual,
+        to_status: novo,
+        changed_by_email: userEmail,
+      })
+      .select()
+      .single();
+    if (!error && data) {
+      setHistory((prev) => [data as StatusHistoryEntry, ...prev]);
+    }
+  };
+
   const currentSale = selected
     ? (() => {
         const s = sales[selected.id] ?? defaultSale(selected);
