@@ -488,8 +488,57 @@ function Index() {
               Salvar configuração
             </Button>
             {savedAt && <span className="text-xs">Salvo às {savedAt}</span>}
+            <Button
+              size="sm"
+              variant={selectionMode ? "default" : "outline"}
+              onClick={() => {
+                setSelectionMode((v) => {
+                  if (v) clearSelection();
+                  return !v;
+                });
+              }}
+              className="h-8"
+            >
+              {selectionMode ? "Sair da seleção" : "Selecionar lotes"}
+            </Button>
           </div>
         </div>
+
+        {/* Barra de ações em massa */}
+        {selectionMode && (
+          <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3 shadow-sm">
+            <span className="text-sm">
+              <span className="font-semibold text-foreground">{selectedIds.size}</span> lote(s) selecionado(s)
+            </span>
+            <Button size="sm" variant="ghost" onClick={selectAllFiltered} className="h-8">
+              Selecionar todos filtrados
+            </Button>
+            <Button size="sm" variant="ghost" onClick={clearSelection} className="h-8" disabled={selectedIds.size === 0}>
+              Limpar
+            </Button>
+            <span className="mx-1 hidden text-xs text-muted-foreground sm:inline">Alterar status para:</span>
+            {STATUS_ORDER.map((s) => {
+              const meta = STATUS_META[s];
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => bulkChangeStatus(s)}
+                  disabled={bulkBusy || selectedIds.size === 0}
+                  className={cn(
+                    "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition disabled:opacity-40",
+                    meta.fill,
+                  )}
+                >
+                  <span className={cn("h-2 w-2 rounded-full", meta.dot)} />
+                  {meta.label}
+                </button>
+              );
+            })}
+            {bulkBusy && <span className="text-xs text-muted-foreground">aplicando…</span>}
+          </div>
+        )}
+
 
 
         {/* Mapa por quadra */}
