@@ -1634,12 +1634,28 @@ function Index() {
 
                 {/* Parcelas */}
                 <div className="mt-4">
-                  <div className="mb-2 flex items-center justify-between">
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                     <h3 className="text-sm font-semibold">Parcelas</h3>
-                    <div className="text-xs text-muted-foreground">
-                      Pago: <span className="font-medium text-foreground">{brl(totalPago)}</span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs text-muted-foreground">
+                        Pago: <span className="font-medium text-foreground">{brl(totalPago)}</span>
+                      </span>
+                      <Button size="sm" variant="outline" className="h-8" onClick={() => recalcVencimentos(selected.id)}>
+                        Recalcular vencimentos
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-8" onClick={() => exportarParcelas("pdf")}>
+                        PDF
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-8" onClick={() => exportarParcelas("xlsx")}>
+                        Excel
+                      </Button>
                     </div>
                   </div>
+                  {(planoErros.dataPrimeiraParcela || planoErros.parcelas) && (
+                    <p className="mb-2 text-xs text-red-600 dark:text-red-400">
+                      {planoErros.parcelas ?? planoErros.dataPrimeiraParcela}
+                    </p>
+                  )}
                   <div className="max-h-72 overflow-auto rounded-md border">
                     <table className="w-full min-w-[34rem] text-sm">
 
