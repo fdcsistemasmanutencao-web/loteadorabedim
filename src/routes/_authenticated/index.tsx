@@ -161,6 +161,7 @@ type PersistedConfig = {
   perQuadra: number;
   precoOverrides: Record<string, number>;
   nomeOverrides: Record<string, string>;
+  statusOverrides: Record<string, Status>;
   sales: Record<string, Sale>;
 };
 
@@ -185,6 +186,7 @@ function Index() {
   const [sales, setSales] = useState<Record<string, Sale>>({});
   const [precoOverrides, setPrecoOverrides] = useState<Record<string, number>>({});
   const [nomeOverrides, setNomeOverrides] = useState<Record<string, string>>({});
+  const [statusOverrides, setStatusOverrides] = useState<Record<string, Status>>({});
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
@@ -206,19 +208,25 @@ function Index() {
     if (cfg.perQuadra) setPerQuadra(cfg.perQuadra);
     if (cfg.precoOverrides) setPrecoOverrides(cfg.precoOverrides);
     if (cfg.nomeOverrides) setNomeOverrides(cfg.nomeOverrides);
+    if (cfg.statusOverrides) setStatusOverrides(cfg.statusOverrides);
     if (cfg.sales) setSales(cfg.sales);
   }, []);
 
   const salvarConfig = () => {
-    const payload: PersistedConfig = { total, perQuadra, precoOverrides, nomeOverrides, sales };
+    const payload: PersistedConfig = { total, perQuadra, precoOverrides, nomeOverrides, statusOverrides, sales };
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     setSavedAt(new Date().toLocaleTimeString("pt-BR"));
   };
 
   const lotesBase = useMemo(() => generateLotes(total, perQuadra), [total, perQuadra]);
   const lotes = useMemo(
-    () => lotesBase.map((l) => (precoOverrides[l.id] != null ? { ...l, preco: precoOverrides[l.id] } : l)),
-    [lotesBase, precoOverrides],
+    () => lotesBase.map((l) => {
+      const next = { ...l };
+      if (precoOverrides[l.id] != null) next.preco = precoOverrides[l.id];
+      if (statusOverrides[l.id]) next.status = statusOverrides[l.id];
+      return next;
+    }),
+    [lotesBase, precoOverrides, statusOverrides],
   );
 
   const currentSale = selected
@@ -418,15 +426,47 @@ function Index() {
                 <DialogHeader>
                   <div className="flex items-center justify-between gap-3">
                     <DialogTitle className="text-xl">Lote {nomeOverrides[selected.id] ? `${nomeOverrides[selected.id]} · ${selected.id}` : selected.id}</DialogTitle>
-                    <Badge variant="outline" className={cn("border", STATUS_META[selected.status].badge)}>
-                      <span className={cn("mr-1.5 h-2 w-2 rounded-full", STATUS_META[selected.status].dot)} />
-                      {STATUS_META[selected.status].label}
+                    <Badge variant="outline" className={cn("border", STATUS_META[live.status].badge)}>
+                      <span className={cn("mr-1.5 h-2 w-2 rounded-full", STATUS_META[live.status].dot)} />
+                      {STATUS_META[live.status].label}
                     </Badge>
                   </div>
                   <DialogDescription>
                     Quadra {selected.quadra} · Lote {selected.numero} · {selected.area} m² · Valor {brl(preco)}
                   </DialogDescription>
                 </DialogHeader>
+
+                {/* Alterar status */}
+                <div className="mt-4">
+                  <Label>Status do lote</Label>
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    {STATUS_ORDER.map((s) => {
+                      const meta = STATUS_META[s];
+                      const active = live.status === s;
+                      return (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() =>
+                            setStatusOverrides((prev) => {
+                              const next = { ...prev };
+                              if (s === selected.status) delete next[selected.id];
+                              else next[selected.id] = s;
+                              return next;
+                            })
+                          }
+                          className={cn(
+                            "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition",
+                            active ? meta.fill : "border-border bg-card text-muted-foreground hover:bg-muted/50",
+                          )}
+                        >
+                          <span className={cn("h-2 w-2 rounded-full", meta.dot)} />
+                          {meta.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
                 {/* Dados da venda financiada */}
                 <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
