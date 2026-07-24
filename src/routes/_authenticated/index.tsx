@@ -806,9 +806,9 @@ function Index() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b bg-card">
-        <div className="mx-auto flex max-w-7xl flex-col gap-2 px-6 py-5 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Mapa de Lotes</h1>
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-4 sm:px-6 sm:py-5 md:flex-row md:items-center md:justify-between">
+          <div className="min-w-0">
+            <h1 className="truncate text-xl font-semibold tracking-tight sm:text-2xl">Mapa de Lotes</h1>
             {empreendimentoEdit ? (
               <div className="mt-1 flex items-center gap-2">
                 <Input
@@ -816,7 +816,8 @@ function Index() {
                   maxLength={160}
                   onChange={(e) => setEmpreendimento(e.target.value)}
                   placeholder="Nome do loteamento"
-                  className="h-8 w-72"
+                  className="h-8 w-full sm:w-72"
+
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === "Enter") setEmpreendimentoEdit(false);
