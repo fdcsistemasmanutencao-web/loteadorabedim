@@ -1529,7 +1529,7 @@ function Index() {
                                     const d = e.target.value;
                                     updatePagamento(selected.id, i, { data: d === "" ? null : d });
                                   }}
-                                  className="ml-auto h-8 w-40"
+                                  className="ml-auto h-8 w-36"
                                 />
                               </td>
                               <td className="px-3 py-1.5 text-right text-xs font-medium">
