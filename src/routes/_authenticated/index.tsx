@@ -242,6 +242,7 @@ type PersistedConfig = {
   numeroOverrides: Record<string, string>;
   statusOverrides: Record<string, Status>;
   corretorOverrides: Record<string, string>;
+  quadraOverrides: Record<string, string>;
   sales: Record<string, Sale>;
   deletedIds: string[];
 };
@@ -322,6 +323,9 @@ function Index() {
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
   const [statusOverrides, setStatusOverrides] = useState<Record<string, Status>>({});
   const [corretorOverrides, setCorretorOverrides] = useState<Record<string, string>>({});
+  const [quadraOverrides, setQuadraOverrides] = useState<Record<string, string>>({});
+  const [dragLoteId, setDragLoteId] = useState<string | null>(null);
+  const [dragOverQuadra, setDragOverQuadra] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -430,6 +434,7 @@ function Index() {
     setDeletedIds(new Set(cfg.deletedIds ?? []));
     setStatusOverrides(cfg.statusOverrides ?? {});
     setCorretorOverrides(cfg.corretorOverrides ?? {});
+    setQuadraOverrides(cfg.quadraOverrides ?? {});
     setSales(cfg.sales ?? {});
     setSavedAt(null);
   };
@@ -445,7 +450,7 @@ function Index() {
 
   const persistConfigFor = (id: string) => {
     if (!id) return;
-    const payload: PersistedConfig = { empreendimento, total, perQuadra, quadraSizes, precoOverrides, nomeOverrides, numeroOverrides, statusOverrides, corretorOverrides, sales, deletedIds: Array.from(deletedIds) };
+    const payload: PersistedConfig = { empreendimento, total, perQuadra, quadraSizes, precoOverrides, nomeOverrides, numeroOverrides, statusOverrides, corretorOverrides, quadraOverrides, sales, deletedIds: Array.from(deletedIds) };
     window.localStorage.setItem(configKey(id), JSON.stringify(payload));
 
   };
@@ -526,11 +531,24 @@ function Index() {
         if (precoOverrides[l.id] != null) next.preco = precoOverrides[l.id];
         if (statusOverrides[l.id]) next.status = statusOverrides[l.id];
         if (corretorOverrides[l.id]) next.corretor = corretorOverrides[l.id];
+        if (quadraOverrides[l.id]) next.quadra = quadraOverrides[l.id];
         if (sales[l.id]?.cliente) next.cliente = sales[l.id].cliente;
         return next;
       }),
-    [lotesBase, precoOverrides, statusOverrides, corretorOverrides, sales, deletedIds],
+    [lotesBase, precoOverrides, statusOverrides, corretorOverrides, quadraOverrides, sales, deletedIds],
   );
+
+  // Mover lote entre quadras (arrastar e soltar)
+  const moverLoteParaQuadra = (loteId: string, destino: string) => {
+    const base = lotesBase.find((l) => l.id === loteId);
+    if (!base) return;
+    setQuadraOverrides((prev) => {
+      const next = { ...prev };
+      if (base.quadra === destino) delete next[loteId];
+      else next[loteId] = destino;
+      return next;
+    });
+  };
 
   // Carrega histórico de status ao abrir o modal
   useEffect(() => {
