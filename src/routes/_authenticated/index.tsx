@@ -198,6 +198,7 @@ type PersistedConfig = {
   perQuadra: number;
   precoOverrides: Record<string, number>;
   nomeOverrides: Record<string, string>;
+  numeroOverrides: Record<string, string>;
   statusOverrides: Record<string, Status>;
   corretorOverrides: Record<string, string>;
   sales: Record<string, Sale>;
@@ -272,6 +273,7 @@ function Index() {
   const [sales, setSales] = useState<Record<string, Sale>>({});
   const [precoOverrides, setPrecoOverrides] = useState<Record<string, number>>({});
   const [nomeOverrides, setNomeOverrides] = useState<Record<string, string>>({});
+  const [numeroOverrides, setNumeroOverrides] = useState<Record<string, string>>({});
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
   const [statusOverrides, setStatusOverrides] = useState<Record<string, Status>>({});
   const [corretorOverrides, setCorretorOverrides] = useState<Record<string, string>>({});
@@ -377,6 +379,7 @@ function Index() {
     setPerQuadra(cfg.perQuadra ?? 15);
     setPrecoOverrides(cfg.precoOverrides ?? {});
     setNomeOverrides(cfg.nomeOverrides ?? {});
+    setNumeroOverrides(cfg.numeroOverrides ?? {});
     setDeletedIds(new Set(cfg.deletedIds ?? []));
     setStatusOverrides(cfg.statusOverrides ?? {});
     setCorretorOverrides(cfg.corretorOverrides ?? {});
@@ -395,7 +398,7 @@ function Index() {
 
   const persistConfigFor = (id: string) => {
     if (!id) return;
-    const payload: PersistedConfig = { empreendimento, total, perQuadra, precoOverrides, nomeOverrides, statusOverrides, corretorOverrides, sales, deletedIds: Array.from(deletedIds) };
+    const payload: PersistedConfig = { empreendimento, total, perQuadra, precoOverrides, nomeOverrides, numeroOverrides, statusOverrides, corretorOverrides, sales, deletedIds: Array.from(deletedIds) };
     window.localStorage.setItem(configKey(id), JSON.stringify(payload));
   };
 
@@ -557,7 +560,7 @@ function Index() {
       if (!filters.has(l.status)) continue;
       if (search) {
         const q = search.toLowerCase();
-        const hay = `${l.id} ${nomeOverrides[l.id] ?? ""} ${l.cliente ?? ""} ${l.corretor ?? ""}`.toLowerCase();
+        const hay = `${l.id} ${numeroOverrides[l.id] ?? ""} ${nomeOverrides[l.id] ?? ""} ${l.cliente ?? ""} ${l.corretor ?? ""}`.toLowerCase();
         if (!hay.includes(q)) continue;
       }
       ids.add(l.id);
@@ -795,13 +798,13 @@ function Index() {
       if (!filters.has(l.status)) continue;
       if (search) {
         const q = search.toLowerCase();
-        const hay = `${l.id} ${nomeOverrides[l.id] ?? ""} ${l.cliente ?? ""} ${l.corretor ?? ""}`.toLowerCase();
+        const hay = `${l.id} ${numeroOverrides[l.id] ?? ""} ${nomeOverrides[l.id] ?? ""} ${l.cliente ?? ""} ${l.corretor ?? ""}`.toLowerCase();
         if (!hay.includes(q)) continue;
       }
       (grouped[l.quadra] ||= []).push(l);
     }
     return grouped;
-  }, [lotes, filters, search, nomeOverrides]);
+  }, [lotes, filters, search, nomeOverrides, numeroOverrides]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -1125,13 +1128,14 @@ function Index() {
                 {lotes.map((l) => {
                   const meta = STATUS_META[l.status];
                   const nome = nomeOverrides[l.id];
-                  const label = nome ?? String(l.numero);
+                  const numeroLabel = numeroOverrides[l.id] ?? String(l.numero);
+                  const label = nome ?? numeroLabel;
                   const isSelected = selectedIds.has(l.id);
                   return (
                     <button
                       key={l.id}
                       onClick={() => (selectionMode ? toggleSelect(l.id) : setSelected(l))}
-                      title={`Lote ${nome ? `${nome} (${l.id})` : l.id} — ${meta.label}`}
+                      title={`Lote ${nome ? `${nome} (${numeroLabel})` : numeroLabel} — ${meta.label}`}
                       className={cn(
                         "group relative aspect-square rounded-md border text-xs font-semibold transition focus:outline-none focus:ring-2",
                         meta.fill,
@@ -1174,9 +1178,29 @@ function Index() {
                   </div>
 
                   <DialogDescription>
-                    Quadra {selected.quadra} · Lote {selected.numero} · {selected.area} m² · Valor {brl(preco)}
+                    Quadra {selected.quadra} · Lote {numeroOverrides[selected.id] ?? selected.numero} · {selected.area} m² · Valor {brl(preco)}
                   </DialogDescription>
                   <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <Label htmlFor="numeroLoteTop" className="whitespace-nowrap text-xs text-muted-foreground">
+                      Número do lote
+                    </Label>
+                    <Input
+                      id="numeroLoteTop"
+                      value={numeroOverrides[selected.id] ?? ""}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setNumeroOverrides((prev) => {
+                          const next = { ...prev };
+                          if (v.trim() === "") delete next[selected.id];
+                          else next[selected.id] = v.trim();
+                          return next;
+                        });
+                      }}
+                      placeholder={`Ex.: ${selected.numero} (padrão)`}
+                      className="h-8 w-24"
+                    />
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
                     <Label htmlFor="nomeLoteTop" className="whitespace-nowrap text-xs text-muted-foreground">
                       Nome do lote
                     </Label>
@@ -1210,6 +1234,7 @@ function Index() {
                           return next;
                         });
                         setNomeOverrides((prev) => { const n = { ...prev }; delete n[id]; return n; });
+                        setNumeroOverrides((prev) => { const n = { ...prev }; delete n[id]; return n; });
                         setStatusOverrides((prev) => { const n = { ...prev }; delete n[id]; return n; });
                         setCorretorOverrides((prev) => { const n = { ...prev }; delete n[id]; return n; });
                         setPrecoOverrides((prev) => { const n = { ...prev }; delete n[id]; return n; });
