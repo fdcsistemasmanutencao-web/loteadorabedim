@@ -279,6 +279,11 @@ function Index() {
   const [bulkCliente, setBulkCliente] = useState("");
   const [bulkErrors, setBulkErrors] = useState<{ corretor?: string; cliente?: string }>({});
 
+  // Multi-empreendimento
+  const [empList, setEmpList] = useState<EmpItem[]>([]);
+  const [activeEmpId, setActiveEmpId] = useState<string>("");
+  const [empsLoaded, setEmpsLoaded] = useState(false);
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setUserEmail(data.user?.email ?? null);
@@ -293,24 +298,100 @@ function Index() {
     navigate({ to: "/auth", replace: true });
   };
 
-  // Carregar configuração salva
+  // Aplicar uma configuração ao estado (ou resetar para defaults)
+  const applyConfig = (cfg: Partial<PersistedConfig>) => {
+    setEmpreendimento(cfg.empreendimento ?? DEFAULT_EMPREENDIMENTO);
+    setTotal(cfg.total ?? 150);
+    setPerQuadra(cfg.perQuadra ?? 15);
+    setPrecoOverrides(cfg.precoOverrides ?? {});
+    setNomeOverrides(cfg.nomeOverrides ?? {});
+    setStatusOverrides(cfg.statusOverrides ?? {});
+    setCorretorOverrides(cfg.corretorOverrides ?? {});
+    setSales(cfg.sales ?? {});
+    setSavedAt(null);
+  };
+
+  // Carregar lista de empreendimentos + configuração ativa (na montagem)
   useEffect(() => {
-    const cfg = loadConfig();
-    if (cfg.empreendimento) setEmpreendimento(cfg.empreendimento);
-    if (cfg.total) setTotal(cfg.total);
-    if (cfg.perQuadra) setPerQuadra(cfg.perQuadra);
-    if (cfg.precoOverrides) setPrecoOverrides(cfg.precoOverrides);
-    if (cfg.nomeOverrides) setNomeOverrides(cfg.nomeOverrides);
-    if (cfg.statusOverrides) setStatusOverrides(cfg.statusOverrides);
-    if (cfg.corretorOverrides) setCorretorOverrides(cfg.corretorOverrides);
-    if (cfg.sales) setSales(cfg.sales);
+    const { list, activeId } = loadEmpList();
+    setEmpList(list);
+    setActiveEmpId(activeId);
+    applyConfig(loadConfigFor(activeId));
+    setEmpsLoaded(true);
   }, []);
 
-  const salvarConfig = () => {
+  const persistConfigFor = (id: string) => {
+    if (!id) return;
     const payload: PersistedConfig = { empreendimento, total, perQuadra, precoOverrides, nomeOverrides, statusOverrides, corretorOverrides, sales };
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    window.localStorage.setItem(configKey(id), JSON.stringify(payload));
+  };
+
+  const salvarConfig = () => {
+    if (!activeEmpId) return;
+    persistConfigFor(activeEmpId);
+    // Atualiza o nome do empreendimento na lista
+    setEmpList((prev) => {
+      const next = prev.map((e) => (e.id === activeEmpId ? { ...e, nome: empreendimento } : e));
+      window.localStorage.setItem(EMPS_KEY, JSON.stringify(next));
+      return next;
+    });
     setSavedAt(new Date().toLocaleTimeString("pt-BR"));
   };
+
+  const switchEmpreendimento = (id: string) => {
+    if (!id || id === activeEmpId) return;
+    // Salva o atual antes de trocar (auto-save)
+    if (activeEmpId) {
+      persistConfigFor(activeEmpId);
+      setEmpList((prev) => {
+        const next = prev.map((e) => (e.id === activeEmpId ? { ...e, nome: empreendimento } : e));
+        window.localStorage.setItem(EMPS_KEY, JSON.stringify(next));
+        return next;
+      });
+    }
+    window.localStorage.setItem(ACTIVE_KEY, id);
+    setActiveEmpId(id);
+    applyConfig(loadConfigFor(id));
+  };
+
+  const criarEmpreendimento = () => {
+    const nome = window.prompt("Nome do novo empreendimento (pode deixar em branco):", "") ?? "";
+    if (nome === null) return;
+    // Salva o atual antes
+    if (activeEmpId) persistConfigFor(activeEmpId);
+    const id = newId();
+    const item: EmpItem = { id, nome: nome.trim() };
+    setEmpList((prev) => {
+      const next = [...prev.map((e) => (e.id === activeEmpId ? { ...e, nome: empreendimento } : e)), item];
+      window.localStorage.setItem(EMPS_KEY, JSON.stringify(next));
+      return next;
+    });
+    window.localStorage.setItem(ACTIVE_KEY, id);
+    setActiveEmpId(id);
+    applyConfig({ empreendimento: item.nome });
+    setEmpreendimentoEdit(!item.nome);
+  };
+
+  const excluirEmpreendimento = () => {
+    if (!activeEmpId) return;
+    if (empList.length <= 1) {
+      window.alert("Não é possível excluir: mantenha ao menos um empreendimento.");
+      return;
+    }
+    const atual = empList.find((e) => e.id === activeEmpId);
+    const ok = window.confirm(`Excluir "${atual?.nome || "(sem nome)"}"? Esta ação não pode ser desfeita.`);
+    if (!ok) return;
+    window.localStorage.removeItem(configKey(activeEmpId));
+    const remaining = empList.filter((e) => e.id !== activeEmpId);
+    const nextId = remaining[0].id;
+    window.localStorage.setItem(EMPS_KEY, JSON.stringify(remaining));
+    window.localStorage.setItem(ACTIVE_KEY, nextId);
+    setEmpList(remaining);
+    setActiveEmpId(nextId);
+    applyConfig(loadConfigFor(nextId));
+  };
+
+
 
   const lotesBase = useMemo(() => generateLotes(total, perQuadra), [total, perQuadra]);
   const lotes = useMemo(
