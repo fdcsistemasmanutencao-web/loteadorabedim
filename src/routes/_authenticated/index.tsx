@@ -519,7 +519,41 @@ function Index() {
                       );
                     })}
                   </div>
+                  <div className="mt-3 rounded-md border bg-muted/30 p-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Histórico de alterações
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {historyLoading ? "carregando…" : `${history.length} registro(s)`}
+                      </span>
+                    </div>
+                    {history.length === 0 && !historyLoading ? (
+                      <p className="text-xs text-muted-foreground">Nenhuma alteração registrada ainda.</p>
+                    ) : (
+                      <ul className="max-h-40 space-y-1.5 overflow-y-auto text-xs">
+                        {history.map((h) => {
+                          const from = h.from_status ? STATUS_META[h.from_status]?.label ?? h.from_status : "—";
+                          const to = STATUS_META[h.to_status]?.label ?? h.to_status;
+                          const when = new Date(h.created_at).toLocaleString("pt-BR");
+                          return (
+                            <li key={h.id} className="flex flex-wrap items-center gap-1.5">
+                              <span className="text-muted-foreground">{when}</span>
+                              <span>·</span>
+                              <span className="font-medium">{h.changed_by_email ?? "usuário"}</span>
+                              <span className="text-muted-foreground">alterou de</span>
+                              <span className="font-medium">{from}</span>
+                              <span className="text-muted-foreground">para</span>
+                              <span className="font-medium">{to}</span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
                 </div>
+
+
 
                 {/* Dados da venda financiada */}
                 <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
