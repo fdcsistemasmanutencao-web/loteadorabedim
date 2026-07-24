@@ -193,6 +193,39 @@ const startOfToday = () => {
   return d;
 };
 const brDate = (d: Date) => d.toLocaleDateString("pt-BR");
+const isValidISODate = (v: string | null | undefined): boolean => {
+  if (!v) return false;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+  const [y, m, d] = v.split("-").map(Number);
+  if (y < 1900 || y > 2200 || m < 1 || m > 12) return false;
+  const dt = new Date(y, m - 1, d);
+  return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d;
+};
+const toISO = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+/** Vencimento da parcela i (0-indexado): usa ajuste manual se houver, senão calcula a partir da 1ª parcela. */
+function vencimentoParcela(sale: Sale, i: number): Date | null {
+  const manual = sale.pagamentos[i]?.venc;
+  if (isValidISODate(manual)) {
+    const [y, m, d] = manual!.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  }
+  if (!isValidISODate(sale.dataPrimeiraParcela)) return null;
+  return addMonths(sale.dataPrimeiraParcela!, i);
+}
+function validarPlano(sale: Sale): { dataPrimeiraParcela?: string; parcelas?: string } {
+  const errs: { dataPrimeiraParcela?: string; parcelas?: string } = {};
+  const n = sale.parcelas;
+  if (!Number.isInteger(n) || n < 1 || n > 360) {
+    errs.parcelas = "Informe um número inteiro de parcelas entre 1 e 360.";
+  }
+  if (!sale.dataPrimeiraParcela) {
+    errs.dataPrimeiraParcela = "Informe a data da 1ª parcela para calcular os vencimentos.";
+  } else if (!isValidISODate(sale.dataPrimeiraParcela)) {
+    errs.dataPrimeiraParcela = "Data inválida. Use o formato dia/mês/ano.";
+  }
+  return errs;
+}
 
 const LEGACY_STORAGE_KEY = "loteadora:config:v1";
 const EMPS_KEY = "loteadora:empreendimentos:v1";
