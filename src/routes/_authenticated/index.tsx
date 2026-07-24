@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { LogOut } from "lucide-react";
 
 const ANNUAL_RATE = 0.05;
 const DEFAULT_MESES_SEM_JUROS = 12;
@@ -37,7 +40,7 @@ type Sale = {
   pagamentos: Pagamento[];
 };
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
     meta: [
       { title: "Mapa de Lotes — Loteadora" },
@@ -172,6 +175,8 @@ function loadConfig(): Partial<PersistedConfig> {
 }
 
 function Index() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [filters, setFilters] = useState<Set<Status>>(new Set(STATUS_ORDER));
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Lote | null>(null);
@@ -181,6 +186,18 @@ function Index() {
   const [precoOverrides, setPrecoOverrides] = useState<Record<string, number>>({});
   const [nomeOverrides, setNomeOverrides] = useState<Record<string, string>>({});
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUserEmail(data.user?.email ?? null));
+  }, []);
+
+  const handleSignOut = async () => {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await supabase.auth.signOut();
+    navigate({ to: "/auth", replace: true });
+  };
 
   // Carregar configuração salva
   useEffect(() => {
@@ -270,12 +287,21 @@ function Index() {
             <h1 className="text-2xl font-semibold tracking-tight">Mapa de Lotes</h1>
             <p className="text-sm text-muted-foreground">Empreendimento Residencial Jardim das Palmeiras</p>
           </div>
-          <div className="w-full md:w-72">
-            <Input
-              placeholder="Buscar por lote, cliente ou corretor…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+          <div className="flex w-full items-center gap-2 md:w-auto">
+            <div className="flex-1 md:w-72">
+              <Input
+                placeholder="Buscar por lote, cliente ou corretor…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            {userEmail && (
+              <span className="hidden text-xs text-muted-foreground lg:inline">{userEmail}</span>
+            )}
+            <Button variant="outline" size="sm" onClick={handleSignOut} title="Sair">
+              <LogOut className="h-4 w-4" />
+              <span className="ml-1 hidden sm:inline">Sair</span>
+            </Button>
           </div>
         </div>
       </header>
