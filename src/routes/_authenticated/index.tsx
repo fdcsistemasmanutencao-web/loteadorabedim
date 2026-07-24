@@ -1621,6 +1621,26 @@ function Index() {
                   placeholder="Seu nome"
                 />
               </div>
+              <div>
+                <Label htmlFor="acc-cpf">CPF (opcional)</Label>
+                <Input id="acc-cpf" value={cpf} onChange={(e) => setCpf(e.target.value)} placeholder="000.000.000-00" />
+              </div>
+              <div>
+                <Label htmlFor="acc-cel">Celular</Label>
+                <Input id="acc-cel" value={celular} onChange={(e) => setCelular(e.target.value)} placeholder="(00) 00000-0000" />
+              </div>
+              <div className="sm:col-span-2">
+                <Label htmlFor="acc-end">Endereço</Label>
+                <Input id="acc-end" value={endereco} onChange={(e) => setEndereco(e.target.value)} placeholder="Rua, número, complemento" />
+              </div>
+              <div>
+                <Label htmlFor="acc-bairro">Bairro</Label>
+                <Input id="acc-bairro" value={bairro} onChange={(e) => setBairro(e.target.value)} />
+              </div>
+              <div>
+                <Label htmlFor="acc-cidade">Cidade</Label>
+                <Input id="acc-cidade" value={cidade} onChange={(e) => setCidade(e.target.value)} />
+              </div>
               {userCreatedAt && (
                 <div className="sm:col-span-2">
                   <Label>Conta criada em</Label>
