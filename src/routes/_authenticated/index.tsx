@@ -776,6 +776,24 @@ function Index() {
                       placeholder={String(selected.numero)}
                     />
                   </div>
+                  <div className="sm:col-span-3">
+                    <Label htmlFor="corretor">Corretor responsável</Label>
+                    <Input
+                      id="corretor"
+                      value={corretorOverrides[selected.id] ?? live.corretor ?? ""}
+                      maxLength={120}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setCorretorOverrides((prev) => {
+                          const next = { ...prev };
+                          if (v.trim() === "") delete next[selected.id];
+                          else next[selected.id] = v;
+                          return next;
+                        });
+                      }}
+                      placeholder="Nome do corretor"
+                    />
+                  </div>
                   <div>
                     <Label htmlFor="preco">Valor total do lote</Label>
                     <Input
