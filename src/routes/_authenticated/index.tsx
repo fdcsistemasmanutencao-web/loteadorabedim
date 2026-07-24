@@ -426,15 +426,47 @@ function Index() {
                 <DialogHeader>
                   <div className="flex items-center justify-between gap-3">
                     <DialogTitle className="text-xl">Lote {nomeOverrides[selected.id] ? `${nomeOverrides[selected.id]} · ${selected.id}` : selected.id}</DialogTitle>
-                    <Badge variant="outline" className={cn("border", STATUS_META[selected.status].badge)}>
-                      <span className={cn("mr-1.5 h-2 w-2 rounded-full", STATUS_META[selected.status].dot)} />
-                      {STATUS_META[selected.status].label}
+                    <Badge variant="outline" className={cn("border", STATUS_META[live.status].badge)}>
+                      <span className={cn("mr-1.5 h-2 w-2 rounded-full", STATUS_META[live.status].dot)} />
+                      {STATUS_META[live.status].label}
                     </Badge>
                   </div>
                   <DialogDescription>
                     Quadra {selected.quadra} · Lote {selected.numero} · {selected.area} m² · Valor {brl(preco)}
                   </DialogDescription>
                 </DialogHeader>
+
+                {/* Alterar status */}
+                <div className="mt-4">
+                  <Label>Status do lote</Label>
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    {STATUS_ORDER.map((s) => {
+                      const meta = STATUS_META[s];
+                      const active = live.status === s;
+                      return (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() =>
+                            setStatusOverrides((prev) => {
+                              const next = { ...prev };
+                              if (s === selected.status) delete next[selected.id];
+                              else next[selected.id] = s;
+                              return next;
+                            })
+                          }
+                          className={cn(
+                            "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition",
+                            active ? meta.fill : "border-border bg-card text-muted-foreground hover:bg-muted/50",
+                          )}
+                        >
+                          <span className={cn("h-2 w-2 rounded-full", meta.dot)} />
+                          {meta.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
                 {/* Dados da venda financiada */}
                 <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
