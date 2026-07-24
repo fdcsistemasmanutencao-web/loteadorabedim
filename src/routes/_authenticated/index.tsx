@@ -123,7 +123,7 @@ function quadraName(i: number): string {
   return `${first}${second}`;
 }
 
-function generateLotes(total: number, perQuadra: number): Lote[] {
+function generateLotes(total: number, perQuadra: number, quadraSizes: Record<string, number> = {}): Lote[] {
   const statuses: Status[] = ["disponivel", "disponivel", "disponivel", "reservado", "vendido", "vendido", "cancelado"];
   const clientes = ["Maria Silva", "João Souza", "Ana Costa", "Carlos Lima", "Bruno Alves", "Paula Rocha"];
   const corretores = ["R. Mendes", "L. Ferreira", "T. Oliveira"];
@@ -135,10 +135,16 @@ function generateLotes(total: number, perQuadra: number): Lote[] {
   };
   let qIdx = 0;
   let nInQuadra = 0;
+  const capFor = (name: string) => {
+    const v = quadraSizes[name];
+    return v && v > 0 ? Math.floor(v) : perQuadra;
+  };
+  let currentCap = capFor(quadraName(0));
   for (let i = 0; i < total; i++) {
-    if (nInQuadra >= perQuadra) {
+    if (nInQuadra >= currentCap) {
       qIdx++;
       nInQuadra = 0;
+      currentCap = capFor(quadraName(qIdx));
     }
     nInQuadra++;
     const q = quadraName(qIdx);
@@ -159,6 +165,7 @@ function generateLotes(total: number, perQuadra: number): Lote[] {
   }
   return out;
 }
+
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 2 });
 
