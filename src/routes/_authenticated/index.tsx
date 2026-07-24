@@ -1521,12 +1521,14 @@ function Index() {
                       <thead className="sticky top-0 bg-muted/60 text-xs uppercase tracking-wide text-muted-foreground">
                         <tr>
                           <th className="px-3 py-2 text-left">#</th>
+                          <th className="px-3 py-2 text-right">Vencimento</th>
                           <th className="px-3 py-2 text-right">Esperado</th>
                           <th className="px-3 py-2 text-right">Valor recebido</th>
                           <th className="px-3 py-2 text-right">Data pagto</th>
                           <th className="px-3 py-2 text-right">Status</th>
                         </tr>
                       </thead>
+
                       <tbody>
                         {currentSale.pagamentos.map((pago, i) => {
                           const esperado = parcelaEsperadaMes(financiado, currentSale.parcelas, i + 1, currentSale.mesesSemJuros);
