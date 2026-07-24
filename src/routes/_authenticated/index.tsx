@@ -280,6 +280,11 @@ function Index() {
   const [accountOpen, setAccountOpen] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [cpf, setCpf] = useState("");
+  const [celular, setCelular] = useState("");
+  const [endereco, setEndereco] = useState("");
+  const [bairro, setBairro] = useState("");
+  const [cidade, setCidade] = useState("");
   const [savingAccount, setSavingAccount] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [changingPwd, setChangingPwd] = useState(false);
