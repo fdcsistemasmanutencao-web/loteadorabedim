@@ -180,7 +180,11 @@ const startOfToday = () => {
 };
 const brDate = (d: Date) => d.toLocaleDateString("pt-BR");
 
-const STORAGE_KEY = "loteadora:config:v1";
+const LEGACY_STORAGE_KEY = "loteadora:config:v1";
+const EMPS_KEY = "loteadora:empreendimentos:v1";
+const ACTIVE_KEY = "loteadora:active:v1";
+const configKey = (id: string) => `loteadora:config:v1:${id}`;
+
 type PersistedConfig = {
   empreendimento: string;
   total: number;
@@ -192,17 +196,60 @@ type PersistedConfig = {
   sales: Record<string, Sale>;
 };
 
+type EmpItem = { id: string; nome: string };
+
 const DEFAULT_EMPREENDIMENTO = "";
 
-function loadConfig(): Partial<PersistedConfig> {
-  if (typeof window === "undefined") return {};
+function newId() {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    return crypto.randomUUID();
+  } catch {
+    return `emp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  }
+}
+
+function loadEmpList(): { list: EmpItem[]; activeId: string } {
+  if (typeof window === "undefined") return { list: [], activeId: "" };
+  try {
+    const raw = window.localStorage.getItem(EMPS_KEY);
+    let list: EmpItem[] = raw ? (JSON.parse(raw) as EmpItem[]) : [];
+    if (!Array.isArray(list) || list.length === 0) {
+      // Migração da configuração antiga (single-empreendimento)
+      const legacy = window.localStorage.getItem(LEGACY_STORAGE_KEY);
+      const id = newId();
+      if (legacy) {
+        try {
+          const parsed = JSON.parse(legacy) as Partial<PersistedConfig>;
+          list = [{ id, nome: parsed.empreendimento || "" }];
+          window.localStorage.setItem(configKey(id), legacy);
+        } catch {
+          list = [{ id, nome: "" }];
+        }
+      } else {
+        list = [{ id, nome: "" }];
+      }
+      window.localStorage.setItem(EMPS_KEY, JSON.stringify(list));
+      window.localStorage.setItem(ACTIVE_KEY, id);
+      return { list, activeId: id };
+    }
+    let activeId = window.localStorage.getItem(ACTIVE_KEY) || list[0].id;
+    if (!list.find((e) => e.id === activeId)) activeId = list[0].id;
+    return { list, activeId };
+  } catch {
+    return { list: [], activeId: "" };
+  }
+}
+
+function loadConfigFor(id: string): Partial<PersistedConfig> {
+  if (typeof window === "undefined" || !id) return {};
+  try {
+    const raw = window.localStorage.getItem(configKey(id));
     return raw ? (JSON.parse(raw) as Partial<PersistedConfig>) : {};
   } catch {
     return {};
   }
 }
+
 
 function Index() {
   const navigate = useNavigate();
