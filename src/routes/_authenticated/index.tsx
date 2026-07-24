@@ -389,6 +389,8 @@ function Index() {
     setEmpreendimento(cfg.empreendimento ?? DEFAULT_EMPREENDIMENTO);
     setTotal(cfg.total ?? 150);
     setPerQuadra(cfg.perQuadra ?? 15);
+    setQuadraSizes(cfg.quadraSizes ?? {});
+
     setPrecoOverrides(cfg.precoOverrides ?? {});
     setNomeOverrides(cfg.nomeOverrides ?? {});
     setNumeroOverrides(cfg.numeroOverrides ?? {});
