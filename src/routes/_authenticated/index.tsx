@@ -37,6 +37,7 @@ type Sale = {
   entrada: number;
   parcelas: number;
   mesesSemJuros: number;
+  dataPrimeiraParcela?: string | null;
   pagamentos: Pagamento[];
 };
 
@@ -160,9 +161,24 @@ function defaultSale(l: Lote): Sale {
     entrada: Math.round(l.preco * 0.2),
     parcelas: 60,
     mesesSemJuros: DEFAULT_MESES_SEM_JUROS,
+    dataPrimeiraParcela: null,
     pagamentos: Array.from({ length: 60 }, () => ({ valor: null, data: null })),
   };
 }
+
+function addMonths(iso: string, months: number): Date {
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(y, (m - 1) + months, d);
+  // Corrige overflow de meses curtos (ex.: 31 jan + 1 mês)
+  if (dt.getDate() !== d) dt.setDate(0);
+  return dt;
+}
+const startOfToday = () => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+const brDate = (d: Date) => d.toLocaleDateString("pt-BR");
 
 const STORAGE_KEY = "loteadora:config:v1";
 type PersistedConfig = {
@@ -511,6 +527,59 @@ function Index() {
     return c;
   }, [lotes]);
 
+  type ParcelaInfo = {
+    lotId: string;
+    lotLabel: string;
+    cliente: string;
+    numero: number;
+    total: number;
+    vencimento: Date;
+    esperado: number;
+    diasAtraso: number; // >0 atrasado, <=0 dias até vencer (negativo)
+  };
+  const parcelasInfo = useMemo(() => {
+    const today = startOfToday();
+    const in30 = new Date(today);
+    in30.setDate(in30.getDate() + 30);
+    const atrasadas: ParcelaInfo[] = [];
+    const proximas: ParcelaInfo[] = [];
+    for (const l of lotes) {
+      const s = sales[l.id];
+      if (!s || !s.dataPrimeiraParcela) continue;
+      const financiado = Math.max(0, l.preco - s.entrada);
+      const nome = nomeOverrides[l.id];
+      const label = nome ? `${nome} (${l.id})` : l.id;
+      const mesesSemJuros = s.mesesSemJuros ?? DEFAULT_MESES_SEM_JUROS;
+      for (let i = 0; i < s.parcelas; i++) {
+        const pago = s.pagamentos[i];
+        const esperado = parcelaEsperadaMes(financiado, s.parcelas, i + 1, mesesSemJuros);
+        const valor = pago?.valor;
+        const quitada = valor !== null && valor !== undefined && valor >= esperado - 0.005;
+        if (quitada) continue;
+        const venc = addMonths(s.dataPrimeiraParcela, i);
+        const diffMs = today.getTime() - venc.getTime();
+        const diasAtraso = Math.floor(diffMs / 86400000);
+        const info: ParcelaInfo = {
+          lotId: l.id,
+          lotLabel: label,
+          cliente: s.cliente || l.cliente || "—",
+          numero: i + 1,
+          total: s.parcelas,
+          vencimento: venc,
+          esperado,
+          diasAtraso,
+        };
+        if (venc < today) atrasadas.push(info);
+        else if (venc <= in30) proximas.push(info);
+      }
+    }
+    atrasadas.sort((a, b) => b.diasAtraso - a.diasAtraso);
+    proximas.sort((a, b) => a.vencimento.getTime() - b.vencimento.getTime());
+    const somaAtrasadas = atrasadas.reduce((a, p) => a + p.esperado, 0);
+    const somaProximas = proximas.reduce((a, p) => a + p.esperado, 0);
+    return { atrasadas, proximas, somaAtrasadas, somaProximas };
+  }, [lotes, sales, nomeOverrides]);
+
   const quadras = useMemo(() => {
     const grouped: Record<string, Lote[]> = {};
     for (const l of lotes) {
@@ -523,7 +592,7 @@ function Index() {
       (grouped[l.quadra] ||= []).push(l);
     }
     return grouped;
-  }, [lotes, filters, search]);
+  }, [lotes, filters, search, nomeOverrides]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -619,6 +688,113 @@ function Index() {
             </Button>
           </div>
         </div>
+
+        {/* Painel de parcelas: em atraso e a vencer */}
+        <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div className="rounded-xl border border-red-500/40 bg-red-500/5 p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-red-700 dark:text-red-300">
+                  Parcelas em atraso
+                </div>
+                <div className="mt-1 text-2xl font-bold text-red-700 dark:text-red-300 tabular-nums">
+                  {parcelasInfo.atrasadas.length}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Total esperado</div>
+                <div className="text-sm font-semibold tabular-nums">{brl(parcelasInfo.somaAtrasadas)}</div>
+              </div>
+            </div>
+            {parcelasInfo.atrasadas.length === 0 ? (
+              <p className="mt-3 text-xs text-muted-foreground">Nenhuma parcela em atraso.</p>
+            ) : (
+              <ul className="mt-3 max-h-48 space-y-1 overflow-y-auto text-xs">
+                {parcelasInfo.atrasadas.slice(0, 8).map((p) => {
+                  const lote = lotes.find((l) => l.id === p.lotId);
+                  return (
+                    <li key={`${p.lotId}-${p.numero}`} className="flex items-center justify-between gap-2 rounded border border-red-500/20 bg-background/60 px-2 py-1">
+                      <button
+                        type="button"
+                        className="truncate text-left font-medium hover:underline"
+                        onClick={() => lote && setSelected(lote)}
+                      >
+                        Lote {p.lotLabel} · {p.cliente}
+                      </button>
+                      <div className="flex shrink-0 items-center gap-2 tabular-nums">
+                        <span>{brDate(p.vencimento)}</span>
+                        <Badge variant="outline" className="border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-300">
+                          {p.diasAtraso}d
+                        </Badge>
+                        <span className="font-semibold">{brl(p.esperado)}</span>
+                      </div>
+                    </li>
+                  );
+                })}
+                {parcelasInfo.atrasadas.length > 8 && (
+                  <li className="pt-1 text-center text-muted-foreground">
+                    +{parcelasInfo.atrasadas.length - 8} outras
+                  </li>
+                )}
+              </ul>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">
+                  Parcelas a vencer (30 dias)
+                </div>
+                <div className="mt-1 text-2xl font-bold text-amber-700 dark:text-amber-300 tabular-nums">
+                  {parcelasInfo.proximas.length}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Total esperado</div>
+                <div className="text-sm font-semibold tabular-nums">{brl(parcelasInfo.somaProximas)}</div>
+              </div>
+            </div>
+            {parcelasInfo.proximas.length === 0 ? (
+              <p className="mt-3 text-xs text-muted-foreground">Nenhuma parcela nos próximos 30 dias.</p>
+            ) : (
+              <ul className="mt-3 max-h-48 space-y-1 overflow-y-auto text-xs">
+                {parcelasInfo.proximas.slice(0, 8).map((p) => {
+                  const lote = lotes.find((l) => l.id === p.lotId);
+                  const dias = Math.max(0, -p.diasAtraso);
+                  return (
+                    <li key={`${p.lotId}-${p.numero}`} className="flex items-center justify-between gap-2 rounded border border-amber-500/20 bg-background/60 px-2 py-1">
+                      <button
+                        type="button"
+                        className="truncate text-left font-medium hover:underline"
+                        onClick={() => lote && setSelected(lote)}
+                      >
+                        Lote {p.lotLabel} · {p.cliente}
+                      </button>
+                      <div className="flex shrink-0 items-center gap-2 tabular-nums">
+                        <span>{brDate(p.vencimento)}</span>
+                        <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300">
+                          em {dias}d
+                        </Badge>
+                        <span className="font-semibold">{brl(p.esperado)}</span>
+                      </div>
+                    </li>
+                  );
+                })}
+                {parcelasInfo.proximas.length > 8 && (
+                  <li className="pt-1 text-center text-muted-foreground">
+                    +{parcelasInfo.proximas.length - 8} outras
+                  </li>
+                )}
+              </ul>
+            )}
+          </div>
+        </div>
+        {!Object.values(sales).some((s) => s?.dataPrimeiraParcela) && (
+          <div className="mb-6 rounded-md border border-dashed bg-muted/30 p-3 text-xs text-muted-foreground">
+            Dica: defina a <strong>Data da 1ª parcela</strong> no modal de cada lote vendido para que as parcelas apareçam nos painéis acima.
+          </div>
+        )}
 
         {/* Barra de ações em massa */}
         {selectionMode && (
@@ -869,7 +1045,22 @@ function Index() {
                       onChange={(e) => updateSale(selected.id, { parcelas: Math.max(1, Math.min(360, Number(e.target.value) || 1)) })}
                     />
                   </div>
-                  <div className="sm:col-span-3">
+                  <div>
+                    <Label htmlFor="data1a">Data da 1ª parcela</Label>
+                    <Input
+                      id="data1a"
+                      type="date"
+                      value={currentSale.dataPrimeiraParcela ?? ""}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        updateSale(selected.id, { dataPrimeiraParcela: v === "" ? null : v });
+                      }}
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Usada para calcular parcelas em atraso e a vencer.
+                    </p>
+                  </div>
+                  <div className="sm:col-span-2">
                     <Label htmlFor="carencia">Meses sem juros (carência)</Label>
                     <Input
                       id="carencia"
