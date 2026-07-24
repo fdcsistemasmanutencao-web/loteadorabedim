@@ -774,6 +774,97 @@ function Index() {
     });
   };
 
+  /** Remove ajustes manuais de vencimento, voltando ao cálculo automático a partir da 1ª parcela. */
+  const recalcVencimentos = (id: string) => {
+    setSales((prev) => {
+      const base = prev[id] ?? (selected ? defaultSale(selected) : null);
+      if (!base) return prev;
+      const pagamentos = base.pagamentos.map((p) => ({ ...p, venc: null }));
+      return { ...prev, [id]: { ...base, pagamentos } };
+    });
+    toast.success("Vencimentos recalculados a partir da 1ª parcela.");
+  };
+
+  const exportarParcelas = async (formato: "pdf" | "xlsx") => {
+    if (!selected) return;
+    const s = sales[selected.id] ?? defaultSale(selected);
+    const sale: Sale = { ...s, mesesSemJuros: s.mesesSemJuros ?? DEFAULT_MESES_SEM_JUROS };
+    const errs = validarPlano(sale);
+    if (errs.parcelas || errs.dataPrimeiraParcela) {
+      toast.error(errs.parcelas ?? errs.dataPrimeiraParcela!);
+      return;
+    }
+    const live = lotes.find((l) => l.id === selected.id) ?? selected;
+    const financiado = Math.max(0, live.preco - sale.entrada);
+    const nomeLote = nomeOverrides[selected.id] ? `${nomeOverrides[selected.id]} (${selected.id})` : selected.id;
+    const rows = sale.pagamentos.slice(0, sale.parcelas).map((p, i) => {
+      const esperado = parcelaEsperadaMes(financiado, sale.parcelas, i + 1, sale.mesesSemJuros);
+      const venc = vencimentoParcela(sale, i);
+      const status = p.valor === null || p.valor === undefined ? "pendente" : p.valor < esperado - 0.005 ? "abaixo" : "ok";
+      return {
+        parcela: i + 1,
+        vencimento: venc ? brDate(venc) : "—",
+        ajuste: isValidISODate(p.venc) ? "manual" : "automático",
+        esperado: Number(esperado.toFixed(2)),
+        recebido: p.valor ?? null,
+        dataPagto: p.data ? brDate(new Date(`${p.data}T00:00:00`)) : "—",
+        status,
+      };
+    });
+    const titulo = `Parcelas ${nomeLote}`;
+    const baseName = `parcelas-${selected.id}`.replace(/[^\w.-]+/g, "_");
+
+    if (formato === "xlsx") {
+      const XLSX = await import("xlsx");
+      const ws = XLSX.utils.json_to_sheet(
+        rows.map((r) => ({
+          "#": r.parcela,
+          Vencimento: r.vencimento,
+          "Tipo vencimento": r.ajuste,
+          Esperado: r.esperado,
+          "Valor recebido": r.recebido,
+          "Data pagto": r.dataPagto,
+          Status: r.status,
+        })),
+      );
+      ws["!cols"] = [{ wch: 6 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 12 }];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Parcelas");
+      XLSX.writeFile(wb, `${baseName}.xlsx`);
+      toast.success("Excel gerado.");
+      return;
+    }
+
+    const { jsPDF } = await import("jspdf");
+    const autoTable = (await import("jspdf-autotable")).default;
+    const doc = new jsPDF({ orientation: "portrait", unit: "pt" });
+    doc.setFontSize(14);
+    doc.text(titulo, 40, 40);
+    doc.setFontSize(10);
+    doc.text(
+      `Cliente: ${sale.cliente || "—"}  |  1ª parcela: ${brDate(new Date(`${sale.dataPrimeiraParcela}T00:00:00`))}  |  Parcelas: ${sale.parcelas}`,
+      40,
+      58,
+    );
+    autoTable(doc, {
+      startY: 74,
+      head: [["#", "Vencimento", "Tipo", "Esperado", "Recebido", "Data pagto", "Status"]],
+      body: rows.map((r) => [
+        String(r.parcela),
+        r.vencimento,
+        r.ajuste,
+        brl(r.esperado),
+        r.recebido === null ? "—" : brl(r.recebido),
+        r.dataPagto,
+        r.status,
+      ]),
+      styles: { fontSize: 8, cellPadding: 3 },
+      headStyles: { fillColor: [30, 41, 59] },
+    });
+    doc.save(`${baseName}.pdf`);
+    toast.success("PDF gerado.");
+  };
+
   const toggle = (s: Status) => {
     const next = new Set(filters);
     if (next.has(s)) next.delete(s);
