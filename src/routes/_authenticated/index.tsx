@@ -1178,9 +1178,29 @@ function Index() {
                   </div>
 
                   <DialogDescription>
-                    Quadra {selected.quadra} · Lote {selected.numero} · {selected.area} m² · Valor {brl(preco)}
+                    Quadra {selected.quadra} · Lote {numeroOverrides[selected.id] ?? selected.numero} · {selected.area} m² · Valor {brl(preco)}
                   </DialogDescription>
                   <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <Label htmlFor="numeroLoteTop" className="whitespace-nowrap text-xs text-muted-foreground">
+                      Número do lote
+                    </Label>
+                    <Input
+                      id="numeroLoteTop"
+                      value={numeroOverrides[selected.id] ?? ""}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setNumeroOverrides((prev) => {
+                          const next = { ...prev };
+                          if (v.trim() === "") delete next[selected.id];
+                          else next[selected.id] = v.trim();
+                          return next;
+                        });
+                      }}
+                      placeholder={`Ex.: ${selected.numero} (padrão)`}
+                      className="h-8 w-24"
+                    />
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
                     <Label htmlFor="nomeLoteTop" className="whitespace-nowrap text-xs text-muted-foreground">
                       Nome do lote
                     </Label>
