@@ -192,7 +192,7 @@ type PersistedConfig = {
   sales: Record<string, Sale>;
 };
 
-const DEFAULT_EMPREENDIMENTO = "Empreendimento Residencial Jardim das Palmeiras";
+const DEFAULT_EMPREENDIMENTO = "";
 
 function loadConfig(): Partial<PersistedConfig> {
   if (typeof window === "undefined") return {};
@@ -612,7 +612,7 @@ function Index() {
                   value={empreendimento}
                   maxLength={160}
                   onChange={(e) => setEmpreendimento(e.target.value)}
-                  placeholder="Nome do empreendimento"
+                  placeholder="Nome do loteamento"
                   className="h-8 w-72"
                   autoFocus
                   onKeyDown={(e) => {
@@ -628,10 +628,10 @@ function Index() {
               <button
                 type="button"
                 onClick={() => setEmpreendimentoEdit(true)}
-                title="Editar nome do empreendimento"
-                className="text-left text-sm text-muted-foreground hover:text-foreground hover:underline"
+                title="Editar nome do loteamento"
+                className={`text-left text-sm hover:underline ${empreendimento ? "text-muted-foreground hover:text-foreground" : "italic text-muted-foreground/70 hover:text-foreground"}`}
               >
-                {empreendimento || "Definir nome do empreendimento"}
+                {empreendimento || "Nome do loteamento"}
               </button>
             )}
           </div>
