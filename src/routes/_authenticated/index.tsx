@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
-import { LogOut, Settings } from "lucide-react";
+import { LogOut, Settings, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 const ANNUAL_RATE = 0.05;
@@ -201,6 +201,7 @@ type PersistedConfig = {
   statusOverrides: Record<string, Status>;
   corretorOverrides: Record<string, string>;
   sales: Record<string, Sale>;
+  deletedIds: string[];
 };
 
 type EmpItem = { id: string; nome: string };
@@ -271,6 +272,7 @@ function Index() {
   const [sales, setSales] = useState<Record<string, Sale>>({});
   const [precoOverrides, setPrecoOverrides] = useState<Record<string, number>>({});
   const [nomeOverrides, setNomeOverrides] = useState<Record<string, string>>({});
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
   const [statusOverrides, setStatusOverrides] = useState<Record<string, Status>>({});
   const [corretorOverrides, setCorretorOverrides] = useState<Record<string, string>>({});
   const [savedAt, setSavedAt] = useState<string | null>(null);
@@ -375,6 +377,7 @@ function Index() {
     setPerQuadra(cfg.perQuadra ?? 15);
     setPrecoOverrides(cfg.precoOverrides ?? {});
     setNomeOverrides(cfg.nomeOverrides ?? {});
+    setDeletedIds(new Set(cfg.deletedIds ?? []));
     setStatusOverrides(cfg.statusOverrides ?? {});
     setCorretorOverrides(cfg.corretorOverrides ?? {});
     setSales(cfg.sales ?? {});
@@ -392,7 +395,7 @@ function Index() {
 
   const persistConfigFor = (id: string) => {
     if (!id) return;
-    const payload: PersistedConfig = { empreendimento, total, perQuadra, precoOverrides, nomeOverrides, statusOverrides, corretorOverrides, sales };
+    const payload: PersistedConfig = { empreendimento, total, perQuadra, precoOverrides, nomeOverrides, statusOverrides, corretorOverrides, sales, deletedIds: Array.from(deletedIds) };
     window.localStorage.setItem(configKey(id), JSON.stringify(payload));
   };
 
@@ -465,15 +468,17 @@ function Index() {
 
   const lotesBase = useMemo(() => generateLotes(total, perQuadra), [total, perQuadra]);
   const lotes = useMemo(
-    () => lotesBase.map((l) => {
-      const next = { ...l };
-      if (precoOverrides[l.id] != null) next.preco = precoOverrides[l.id];
-      if (statusOverrides[l.id]) next.status = statusOverrides[l.id];
-      if (corretorOverrides[l.id]) next.corretor = corretorOverrides[l.id];
-      if (sales[l.id]?.cliente) next.cliente = sales[l.id].cliente;
-      return next;
-    }),
-    [lotesBase, precoOverrides, statusOverrides, corretorOverrides, sales],
+    () => lotesBase
+      .filter((l) => !deletedIds.has(l.id))
+      .map((l) => {
+        const next = { ...l };
+        if (precoOverrides[l.id] != null) next.preco = precoOverrides[l.id];
+        if (statusOverrides[l.id]) next.status = statusOverrides[l.id];
+        if (corretorOverrides[l.id]) next.corretor = corretorOverrides[l.id];
+        if (sales[l.id]?.cliente) next.cliente = sales[l.id].cliente;
+        return next;
+      }),
+    [lotesBase, precoOverrides, statusOverrides, corretorOverrides, sales, deletedIds],
   );
 
   // Carrega histórico de status ao abrir o modal
@@ -1185,6 +1190,30 @@ function Index() {
                       placeholder={`Ex.: ${selected.id} (padrão)`}
                       className="h-8"
                     />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 border-rose-300 text-rose-700 hover:bg-rose-50 dark:border-rose-900 dark:text-rose-300 dark:hover:bg-rose-950"
+                      onClick={() => {
+                        const nome = nomeOverrides[selected.id] ?? selected.id;
+                        if (!window.confirm(`Excluir o lote "${nome}"? Esta ação remove o lote do mapa junto com seus dados de venda.`)) return;
+                        const id = selected.id;
+                        setDeletedIds((prev) => {
+                          const next = new Set(prev);
+                          next.add(id);
+                          return next;
+                        });
+                        setNomeOverrides((prev) => { const n = { ...prev }; delete n[id]; return n; });
+                        setStatusOverrides((prev) => { const n = { ...prev }; delete n[id]; return n; });
+                        setCorretorOverrides((prev) => { const n = { ...prev }; delete n[id]; return n; });
+                        setPrecoOverrides((prev) => { const n = { ...prev }; delete n[id]; return n; });
+                        setSales((prev) => { const n = { ...prev }; delete n[id]; return n; });
+                        setSelected(null);
+                        toast.success("Lote excluído");
+                      }}
+                    >
+                      <Trash2 className="mr-1 h-4 w-4" /> Excluir
+                    </Button>
                   </div>
                 </DialogHeader>
 
