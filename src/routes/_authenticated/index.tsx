@@ -914,7 +914,7 @@ function Index() {
               </button>
             );
           })}
-          <div className="ml-auto flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+          <div className="flex w-full flex-wrap items-center gap-3 text-sm text-muted-foreground md:ml-auto md:w-auto">
             <label className="flex items-center gap-2">
               <span>Total de lotes</span>
               <Input
