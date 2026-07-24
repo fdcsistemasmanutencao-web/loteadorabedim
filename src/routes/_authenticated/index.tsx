@@ -412,8 +412,9 @@ function Index() {
 
   const persistConfigFor = (id: string) => {
     if (!id) return;
-    const payload: PersistedConfig = { empreendimento, total, perQuadra, precoOverrides, nomeOverrides, numeroOverrides, statusOverrides, corretorOverrides, sales, deletedIds: Array.from(deletedIds) };
+    const payload: PersistedConfig = { empreendimento, total, perQuadra, quadraSizes, precoOverrides, nomeOverrides, numeroOverrides, statusOverrides, corretorOverrides, sales, deletedIds: Array.from(deletedIds) };
     window.localStorage.setItem(configKey(id), JSON.stringify(payload));
+
   };
 
   const salvarConfig = () => {
