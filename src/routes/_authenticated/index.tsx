@@ -689,6 +689,113 @@ function Index() {
           </div>
         </div>
 
+        {/* Painel de parcelas: em atraso e a vencer */}
+        <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div className="rounded-xl border border-red-500/40 bg-red-500/5 p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-red-700 dark:text-red-300">
+                  Parcelas em atraso
+                </div>
+                <div className="mt-1 text-2xl font-bold text-red-700 dark:text-red-300 tabular-nums">
+                  {parcelasInfo.atrasadas.length}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Total esperado</div>
+                <div className="text-sm font-semibold tabular-nums">{brl(parcelasInfo.somaAtrasadas)}</div>
+              </div>
+            </div>
+            {parcelasInfo.atrasadas.length === 0 ? (
+              <p className="mt-3 text-xs text-muted-foreground">Nenhuma parcela em atraso.</p>
+            ) : (
+              <ul className="mt-3 max-h-48 space-y-1 overflow-y-auto text-xs">
+                {parcelasInfo.atrasadas.slice(0, 8).map((p) => {
+                  const lote = lotes.find((l) => l.id === p.lotId);
+                  return (
+                    <li key={`${p.lotId}-${p.numero}`} className="flex items-center justify-between gap-2 rounded border border-red-500/20 bg-background/60 px-2 py-1">
+                      <button
+                        type="button"
+                        className="truncate text-left font-medium hover:underline"
+                        onClick={() => lote && setSelected(lote)}
+                      >
+                        Lote {p.lotLabel} · {p.cliente}
+                      </button>
+                      <div className="flex shrink-0 items-center gap-2 tabular-nums">
+                        <span>{brDate(p.vencimento)}</span>
+                        <Badge variant="outline" className="border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-300">
+                          {p.diasAtraso}d
+                        </Badge>
+                        <span className="font-semibold">{brl(p.esperado)}</span>
+                      </div>
+                    </li>
+                  );
+                })}
+                {parcelasInfo.atrasadas.length > 8 && (
+                  <li className="pt-1 text-center text-muted-foreground">
+                    +{parcelasInfo.atrasadas.length - 8} outras
+                  </li>
+                )}
+              </ul>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">
+                  Parcelas a vencer (30 dias)
+                </div>
+                <div className="mt-1 text-2xl font-bold text-amber-700 dark:text-amber-300 tabular-nums">
+                  {parcelasInfo.proximas.length}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Total esperado</div>
+                <div className="text-sm font-semibold tabular-nums">{brl(parcelasInfo.somaProximas)}</div>
+              </div>
+            </div>
+            {parcelasInfo.proximas.length === 0 ? (
+              <p className="mt-3 text-xs text-muted-foreground">Nenhuma parcela nos próximos 30 dias.</p>
+            ) : (
+              <ul className="mt-3 max-h-48 space-y-1 overflow-y-auto text-xs">
+                {parcelasInfo.proximas.slice(0, 8).map((p) => {
+                  const lote = lotes.find((l) => l.id === p.lotId);
+                  const dias = Math.max(0, -p.diasAtraso);
+                  return (
+                    <li key={`${p.lotId}-${p.numero}`} className="flex items-center justify-between gap-2 rounded border border-amber-500/20 bg-background/60 px-2 py-1">
+                      <button
+                        type="button"
+                        className="truncate text-left font-medium hover:underline"
+                        onClick={() => lote && setSelected(lote)}
+                      >
+                        Lote {p.lotLabel} · {p.cliente}
+                      </button>
+                      <div className="flex shrink-0 items-center gap-2 tabular-nums">
+                        <span>{brDate(p.vencimento)}</span>
+                        <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300">
+                          em {dias}d
+                        </Badge>
+                        <span className="font-semibold">{brl(p.esperado)}</span>
+                      </div>
+                    </li>
+                  );
+                })}
+                {parcelasInfo.proximas.length > 8 && (
+                  <li className="pt-1 text-center text-muted-foreground">
+                    +{parcelasInfo.proximas.length - 8} outras
+                  </li>
+                )}
+              </ul>
+            )}
+          </div>
+        </div>
+        {!Object.values(sales).some((s) => s?.dataPrimeiraParcela) && (
+          <div className="mb-6 rounded-md border border-dashed bg-muted/30 p-3 text-xs text-muted-foreground">
+            Dica: defina a <strong>Data da 1ª parcela</strong> no modal de cada lote vendido para que as parcelas apareçam nos painéis acima.
+          </div>
+        )}
+
         {/* Barra de ações em massa */}
         {selectionMode && (
           <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3 shadow-sm">
