@@ -161,6 +161,7 @@ type PersistedConfig = {
   perQuadra: number;
   precoOverrides: Record<string, number>;
   nomeOverrides: Record<string, string>;
+  statusOverrides: Record<string, Status>;
   sales: Record<string, Sale>;
 };
 
