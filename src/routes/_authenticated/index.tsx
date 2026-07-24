@@ -171,6 +171,7 @@ type PersistedConfig = {
   precoOverrides: Record<string, number>;
   nomeOverrides: Record<string, string>;
   statusOverrides: Record<string, Status>;
+  corretorOverrides: Record<string, string>;
   sales: Record<string, Sale>;
 };
 
@@ -196,6 +197,7 @@ function Index() {
   const [precoOverrides, setPrecoOverrides] = useState<Record<string, number>>({});
   const [nomeOverrides, setNomeOverrides] = useState<Record<string, string>>({});
   const [statusOverrides, setStatusOverrides] = useState<Record<string, Status>>({});
+  const [corretorOverrides, setCorretorOverrides] = useState<Record<string, string>>({});
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -204,6 +206,10 @@ function Index() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkPendingStatus, setBulkPendingStatus] = useState<Status | null>(null);
+  const [bulkCorretor, setBulkCorretor] = useState("");
+  const [bulkCliente, setBulkCliente] = useState("");
+  const [bulkErrors, setBulkErrors] = useState<{ corretor?: string; cliente?: string }>({});
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -227,11 +233,12 @@ function Index() {
     if (cfg.precoOverrides) setPrecoOverrides(cfg.precoOverrides);
     if (cfg.nomeOverrides) setNomeOverrides(cfg.nomeOverrides);
     if (cfg.statusOverrides) setStatusOverrides(cfg.statusOverrides);
+    if (cfg.corretorOverrides) setCorretorOverrides(cfg.corretorOverrides);
     if (cfg.sales) setSales(cfg.sales);
   }, []);
 
   const salvarConfig = () => {
-    const payload: PersistedConfig = { total, perQuadra, precoOverrides, nomeOverrides, statusOverrides, sales };
+    const payload: PersistedConfig = { total, perQuadra, precoOverrides, nomeOverrides, statusOverrides, corretorOverrides, sales };
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     setSavedAt(new Date().toLocaleTimeString("pt-BR"));
   };
@@ -242,9 +249,11 @@ function Index() {
       const next = { ...l };
       if (precoOverrides[l.id] != null) next.preco = precoOverrides[l.id];
       if (statusOverrides[l.id]) next.status = statusOverrides[l.id];
+      if (corretorOverrides[l.id]) next.corretor = corretorOverrides[l.id];
+      if (sales[l.id]?.cliente) next.cliente = sales[l.id].cliente;
       return next;
     }),
-    [lotesBase, precoOverrides, statusOverrides],
+    [lotesBase, precoOverrides, statusOverrides, corretorOverrides, sales],
   );
 
   // Carrega histórico de status ao abrir o modal
@@ -317,7 +326,10 @@ function Index() {
     setSelectedIds(ids);
   };
 
-  const bulkChangeStatus = async (novo: Status) => {
+  const applyBulkStatus = async (
+    novo: Status,
+    extras?: { corretor?: string; cliente?: string },
+  ) => {
     if (!userId || selectedIds.size === 0) return;
     setBulkBusy(true);
     const ids = Array.from(selectedIds);
@@ -326,13 +338,35 @@ function Index() {
 
     setStatusOverrides((prev) => {
       const next = { ...prev };
-      for (const id of toApply) {
+      for (const id of ids) {
         const base = lotesBase.find((l) => l.id === id);
         if (base && novo === base.status) delete next[id];
         else next[id] = novo;
       }
       return next;
     });
+
+    if (extras?.corretor) {
+      const corretor = extras.corretor;
+      setCorretorOverrides((prev) => {
+        const next = { ...prev };
+        for (const id of ids) next[id] = corretor;
+        return next;
+      });
+    }
+
+    if (extras?.cliente) {
+      const cliente = extras.cliente;
+      setSales((prev) => {
+        const next = { ...prev };
+        for (const id of ids) {
+          const base = lotesBase.find((l) => l.id === id);
+          const existing = next[id] ?? (base ? defaultSale(base) : null);
+          if (existing) next[id] = { ...existing, cliente };
+        }
+        return next;
+      });
+    }
 
     if (toApply.length > 0) {
       const rows = toApply.map((id) => ({
@@ -350,6 +384,49 @@ function Index() {
     }
     setBulkBusy(false);
   };
+
+  const bulkChangeStatus = (novo: Status) => {
+    if (selectedIds.size === 0) return;
+    if (novo === "reservado" || novo === "vendido") {
+      // Pré-preenche com o corretor mais frequente entre os selecionados
+      const freq = new Map<string, number>();
+      for (const id of selectedIds) {
+        const c = corretorOverrides[id] ?? lotesBase.find((l) => l.id === id)?.corretor;
+        if (c) freq.set(c, (freq.get(c) ?? 0) + 1);
+      }
+      const topCorretor = [...freq.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "";
+      setBulkCorretor(topCorretor);
+      setBulkCliente("");
+      setBulkErrors({});
+      setBulkPendingStatus(novo);
+      return;
+    }
+    void applyBulkStatus(novo);
+  };
+
+  const confirmBulkAssignment = async () => {
+    if (!bulkPendingStatus) return;
+    const errors: { corretor?: string; cliente?: string } = {};
+    const corretor = bulkCorretor.trim();
+    const cliente = bulkCliente.trim();
+    if (corretor.length < 2) errors.corretor = "Informe o nome do corretor (mín. 2 caracteres).";
+    if (corretor.length > 120) errors.corretor = "Máx. 120 caracteres.";
+    if (bulkPendingStatus === "vendido") {
+      if (cliente.length < 2) errors.cliente = "Informe o nome do cliente (mín. 2 caracteres).";
+      else if (cliente.length > 120) errors.cliente = "Máx. 120 caracteres.";
+    }
+    if (Object.keys(errors).length > 0) {
+      setBulkErrors(errors);
+      return;
+    }
+    const pending = bulkPendingStatus;
+    setBulkPendingStatus(null);
+    await applyBulkStatus(pending, {
+      corretor,
+      cliente: pending === "vendido" ? cliente : undefined,
+    });
+  };
+
 
   const currentSale = selected
     ? (() => {
@@ -699,6 +776,24 @@ function Index() {
                       placeholder={String(selected.numero)}
                     />
                   </div>
+                  <div className="sm:col-span-3">
+                    <Label htmlFor="corretor">Corretor responsável</Label>
+                    <Input
+                      id="corretor"
+                      value={corretorOverrides[selected.id] ?? live.corretor ?? ""}
+                      maxLength={120}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setCorretorOverrides((prev) => {
+                          const next = { ...prev };
+                          if (v.trim() === "") delete next[selected.id];
+                          else next[selected.id] = v;
+                          return next;
+                        });
+                      }}
+                      placeholder="Nome do corretor"
+                    />
+                  </div>
                   <div>
                     <Label htmlFor="preco">Valor total do lote</Label>
                     <Input
@@ -869,6 +964,62 @@ function Index() {
           })()}
         </DialogContent>
 
+      </Dialog>
+
+      <Dialog open={bulkPendingStatus !== null} onOpenChange={(o) => !o && setBulkPendingStatus(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {bulkPendingStatus === "vendido" ? "Vender lotes em massa" : "Reservar lotes em massa"}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedIds.size} lote(s) selecionado(s). Informe os dados abaixo para concluir.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-2 space-y-3">
+            <div>
+              <Label htmlFor="bulk-corretor">Corretor responsável *</Label>
+              <Input
+                id="bulk-corretor"
+                value={bulkCorretor}
+                maxLength={120}
+                onChange={(e) => setBulkCorretor(e.target.value)}
+                placeholder="Nome do corretor"
+                aria-invalid={!!bulkErrors.corretor}
+              />
+              {bulkErrors.corretor && (
+                <p className="mt-1 text-xs text-red-600 dark:text-red-400">{bulkErrors.corretor}</p>
+              )}
+            </div>
+            {bulkPendingStatus === "vendido" && (
+              <div>
+                <Label htmlFor="bulk-cliente">Cliente comprador *</Label>
+                <Input
+                  id="bulk-cliente"
+                  value={bulkCliente}
+                  maxLength={120}
+                  onChange={(e) => setBulkCliente(e.target.value)}
+                  placeholder="Nome do cliente"
+                  aria-invalid={!!bulkErrors.cliente}
+                />
+                {bulkErrors.cliente && (
+                  <p className="mt-1 text-xs text-red-600 dark:text-red-400">{bulkErrors.cliente}</p>
+                )}
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Será aplicado a todos os lotes selecionados. Ajustes individuais podem ser feitos depois no lote.
+                </p>
+              </div>
+            )}
+          </div>
+          <div className="mt-4 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setBulkPendingStatus(null)} disabled={bulkBusy}>
+              Cancelar
+            </Button>
+            <Button onClick={confirmBulkAssignment} disabled={bulkBusy}>
+              {bulkBusy ? "Aplicando…" : "Confirmar"}
+            </Button>
+          </div>
+        </DialogContent>
       </Dialog>
     </div>
   );
