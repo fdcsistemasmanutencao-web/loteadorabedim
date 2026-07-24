@@ -312,11 +312,16 @@ function Index() {
       if (u?.id) {
         const { data: p } = await supabase
           .from("profiles")
-          .select("display_name, avatar_url")
+          .select("display_name, avatar_url, cpf, celular, endereco, bairro, cidade")
           .eq("id", u.id)
           .maybeSingle();
         setDisplayName(p?.display_name ?? "");
         setAvatarUrl(p?.avatar_url ?? "");
+        setCpf(p?.cpf ?? "");
+        setCelular(p?.celular ?? "");
+        setEndereco(p?.endereco ?? "");
+        setBairro(p?.bairro ?? "");
+        setCidade(p?.cidade ?? "");
       }
     });
   }, []);
@@ -326,7 +331,15 @@ function Index() {
     setSavingAccount(true);
     const { error } = await supabase
       .from("profiles")
-      .update({ display_name: displayName || null, avatar_url: avatarUrl || null })
+      .update({
+        display_name: displayName || null,
+        avatar_url: avatarUrl || null,
+        cpf: cpf || null,
+        celular: celular || null,
+        endereco: endereco || null,
+        bairro: bairro || null,
+        cidade: cidade || null,
+      })
       .eq("id", userId);
     setSavingAccount(false);
     if (error) toast.error("Erro ao salvar: " + error.message);
