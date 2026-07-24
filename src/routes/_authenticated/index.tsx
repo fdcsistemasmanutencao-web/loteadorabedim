@@ -287,12 +287,21 @@ function Index() {
             <h1 className="text-2xl font-semibold tracking-tight">Mapa de Lotes</h1>
             <p className="text-sm text-muted-foreground">Empreendimento Residencial Jardim das Palmeiras</p>
           </div>
-          <div className="w-full md:w-72">
-            <Input
-              placeholder="Buscar por lote, cliente ou corretor…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+          <div className="flex w-full items-center gap-2 md:w-auto">
+            <div className="flex-1 md:w-72">
+              <Input
+                placeholder="Buscar por lote, cliente ou corretor…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            {userEmail && (
+              <span className="hidden text-xs text-muted-foreground lg:inline">{userEmail}</span>
+            )}
+            <Button variant="outline" size="sm" onClick={handleSignOut} title="Sair">
+              <LogOut className="h-4 w-4" />
+              <span className="ml-1 hidden sm:inline">Sair</span>
+            </Button>
           </div>
         </div>
       </header>
