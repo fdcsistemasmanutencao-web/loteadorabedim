@@ -1545,10 +1545,13 @@ function Index() {
                           const anoLabel = mes <= currentSale.mesesSemJuros
                             ? "c"
                             : `a${Math.floor((mes - currentSale.mesesSemJuros - 1) / 12) + 2}`;
+                          const venc = currentSale.dataPrimeiraParcela ? addMonths(currentSale.dataPrimeiraParcela, i) : null;
                           return (
                             <tr key={i} className={cn("border-t", rowClass)}>
                               <td className="px-3 py-1.5 text-muted-foreground">{i + 1} <span className="text-[10px] opacity-60">{anoLabel}</span></td>
+                              <td className="px-3 py-1.5 text-right tabular-nums text-muted-foreground">{venc ? brDate(venc) : "—"}</td>
                               <td className="px-3 py-1.5 text-right tabular-nums">{brl(esperado)}</td>
+
                               <td className="px-3 py-1.5 text-right">
                                 <Input
                                   type="number"
