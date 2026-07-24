@@ -561,19 +561,24 @@ function Index() {
                   const meta = STATUS_META[l.status];
                   const nome = nomeOverrides[l.id];
                   const label = nome ?? String(l.numero);
+                  const isSelected = selectedIds.has(l.id);
                   return (
                     <button
                       key={l.id}
-                      onClick={() => setSelected(l)}
+                      onClick={() => (selectionMode ? toggleSelect(l.id) : setSelected(l))}
                       title={`Lote ${nome ? `${nome} (${l.id})` : l.id} — ${meta.label}`}
                       className={cn(
                         "group relative aspect-square rounded-md border text-xs font-semibold transition focus:outline-none focus:ring-2",
                         meta.fill,
                         meta.ring,
+                        selectionMode && isSelected && "ring-2 ring-offset-2 ring-primary",
                       )}
                     >
                       <span className="absolute left-1 top-1 text-[10px] font-normal opacity-70">{l.quadra}</span>
                       <span className={cn("truncate px-1", label.length > 3 ? "text-xs" : "text-base")}>{label}</span>
+                      {selectionMode && isSelected && (
+                        <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">✓</span>
+                      )}
                     </button>
                   );
                 })}
