@@ -468,15 +468,17 @@ function Index() {
 
   const lotesBase = useMemo(() => generateLotes(total, perQuadra), [total, perQuadra]);
   const lotes = useMemo(
-    () => lotesBase.map((l) => {
-      const next = { ...l };
-      if (precoOverrides[l.id] != null) next.preco = precoOverrides[l.id];
-      if (statusOverrides[l.id]) next.status = statusOverrides[l.id];
-      if (corretorOverrides[l.id]) next.corretor = corretorOverrides[l.id];
-      if (sales[l.id]?.cliente) next.cliente = sales[l.id].cliente;
-      return next;
-    }),
-    [lotesBase, precoOverrides, statusOverrides, corretorOverrides, sales],
+    () => lotesBase
+      .filter((l) => !deletedIds.has(l.id))
+      .map((l) => {
+        const next = { ...l };
+        if (precoOverrides[l.id] != null) next.preco = precoOverrides[l.id];
+        if (statusOverrides[l.id]) next.status = statusOverrides[l.id];
+        if (corretorOverrides[l.id]) next.corretor = corretorOverrides[l.id];
+        if (sales[l.id]?.cliente) next.cliente = sales[l.id].cliente;
+        return next;
+      }),
+    [lotesBase, precoOverrides, statusOverrides, corretorOverrides, sales, deletedIds],
   );
 
   // Carrega histórico de status ao abrir o modal
