@@ -1471,8 +1471,9 @@ function Index() {
                       Pago: <span className="font-medium text-foreground">{brl(totalPago)}</span>
                     </div>
                   </div>
-                  <div className="max-h-72 overflow-y-auto rounded-md border">
-                    <table className="w-full text-sm">
+                  <div className="max-h-72 overflow-auto rounded-md border">
+                    <table className="w-full min-w-[34rem] text-sm">
+
                       <thead className="sticky top-0 bg-muted/60 text-xs uppercase tracking-wide text-muted-foreground">
                         <tr>
                           <th className="px-3 py-2 text-left">#</th>
