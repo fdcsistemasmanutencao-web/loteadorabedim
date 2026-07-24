@@ -175,6 +175,8 @@ function loadConfig(): Partial<PersistedConfig> {
 }
 
 function Index() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [filters, setFilters] = useState<Set<Status>>(new Set(STATUS_ORDER));
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Lote | null>(null);
@@ -184,6 +186,18 @@ function Index() {
   const [precoOverrides, setPrecoOverrides] = useState<Record<string, number>>({});
   const [nomeOverrides, setNomeOverrides] = useState<Record<string, string>>({});
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUserEmail(data.user?.email ?? null));
+  }, []);
+
+  const handleSignOut = async () => {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await supabase.auth.signOut();
+    navigate({ to: "/auth", replace: true });
+  };
 
   // Carregar configuração salva
   useEffect(() => {
