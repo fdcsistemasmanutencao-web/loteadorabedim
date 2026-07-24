@@ -763,7 +763,35 @@ function Index() {
               </button>
             )}
           </div>
-          <div className="flex w-full items-center gap-2 md:w-auto">
+          <div className="flex w-full flex-wrap items-center gap-2 md:w-auto">
+            <label className="flex items-center gap-1 text-xs text-muted-foreground">
+              <span className="hidden sm:inline">Empreendimento</span>
+              <select
+                value={activeEmpId}
+                onChange={(e) => switchEmpreendimento(e.target.value)}
+                className="h-9 max-w-[180px] rounded-md border border-input bg-background px-2 text-sm"
+                title="Trocar de empreendimento"
+              >
+                {empList.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.nome || "(sem nome)"}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Button variant="outline" size="sm" onClick={criarEmpreendimento} className="h-9" title="Novo empreendimento">
+              + Novo
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={excluirEmpreendimento}
+              disabled={empList.length <= 1}
+              className="h-9"
+              title="Excluir empreendimento atual"
+            >
+              Excluir
+            </Button>
             <div className="flex-1 md:w-72">
               <Input
                 placeholder="Buscar por lote, cliente ou corretor…"
@@ -781,6 +809,7 @@ function Index() {
           </div>
         </div>
       </header>
+
 
       <main className="mx-auto max-w-7xl px-6 py-6">
         {/* Filtros / Legenda */}
