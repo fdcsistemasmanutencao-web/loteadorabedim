@@ -201,6 +201,9 @@ function Index() {
   const [userId, setUserId] = useState<string | null>(null);
   const [history, setHistory] = useState<StatusHistoryEntry[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -287,6 +290,65 @@ function Index() {
     if (!error && data) {
       setHistory((prev) => [data as StatusHistoryEntry, ...prev]);
     }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const selectAllFiltered = () => {
+    const ids = new Set<string>();
+    for (const l of lotes) {
+      if (!filters.has(l.status)) continue;
+      if (search) {
+        const q = search.toLowerCase();
+        const hay = `${l.id} ${nomeOverrides[l.id] ?? ""} ${l.cliente ?? ""} ${l.corretor ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) continue;
+      }
+      ids.add(l.id);
+    }
+    setSelectedIds(ids);
+  };
+
+  const bulkChangeStatus = async (novo: Status) => {
+    if (!userId || selectedIds.size === 0) return;
+    setBulkBusy(true);
+    const ids = Array.from(selectedIds);
+    const currentById = new Map(lotes.map((l) => [l.id, l.status] as const));
+    const toApply = ids.filter((id) => currentById.get(id) !== novo);
+
+    setStatusOverrides((prev) => {
+      const next = { ...prev };
+      for (const id of toApply) {
+        const base = lotesBase.find((l) => l.id === id);
+        if (base && novo === base.status) delete next[id];
+        else next[id] = novo;
+      }
+      return next;
+    });
+
+    if (toApply.length > 0) {
+      const rows = toApply.map((id) => ({
+        user_id: userId,
+        lot_id: id,
+        from_status: currentById.get(id) ?? null,
+        to_status: novo,
+        changed_by_email: userEmail,
+      }));
+      const { data } = await supabase.from("lot_status_history").insert(rows).select();
+      if (data && selected) {
+        const forSelected = (data as unknown as StatusHistoryEntry[]).filter((d) => d.lot_id === selected.id);
+        if (forSelected.length > 0) setHistory((prev) => [...forSelected, ...prev]);
+      }
+    }
+    setBulkBusy(false);
   };
 
   const currentSale = selected
@@ -426,8 +488,57 @@ function Index() {
               Salvar configuração
             </Button>
             {savedAt && <span className="text-xs">Salvo às {savedAt}</span>}
+            <Button
+              size="sm"
+              variant={selectionMode ? "default" : "outline"}
+              onClick={() => {
+                setSelectionMode((v) => {
+                  if (v) clearSelection();
+                  return !v;
+                });
+              }}
+              className="h-8"
+            >
+              {selectionMode ? "Sair da seleção" : "Selecionar lotes"}
+            </Button>
           </div>
         </div>
+
+        {/* Barra de ações em massa */}
+        {selectionMode && (
+          <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3 shadow-sm">
+            <span className="text-sm">
+              <span className="font-semibold text-foreground">{selectedIds.size}</span> lote(s) selecionado(s)
+            </span>
+            <Button size="sm" variant="ghost" onClick={selectAllFiltered} className="h-8">
+              Selecionar todos filtrados
+            </Button>
+            <Button size="sm" variant="ghost" onClick={clearSelection} className="h-8" disabled={selectedIds.size === 0}>
+              Limpar
+            </Button>
+            <span className="mx-1 hidden text-xs text-muted-foreground sm:inline">Alterar status para:</span>
+            {STATUS_ORDER.map((s) => {
+              const meta = STATUS_META[s];
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => bulkChangeStatus(s)}
+                  disabled={bulkBusy || selectedIds.size === 0}
+                  className={cn(
+                    "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition disabled:opacity-40",
+                    meta.fill,
+                  )}
+                >
+                  <span className={cn("h-2 w-2 rounded-full", meta.dot)} />
+                  {meta.label}
+                </button>
+              );
+            })}
+            {bulkBusy && <span className="text-xs text-muted-foreground">aplicando…</span>}
+          </div>
+        )}
+
 
 
         {/* Mapa por quadra */}
@@ -450,19 +561,24 @@ function Index() {
                   const meta = STATUS_META[l.status];
                   const nome = nomeOverrides[l.id];
                   const label = nome ?? String(l.numero);
+                  const isSelected = selectedIds.has(l.id);
                   return (
                     <button
                       key={l.id}
-                      onClick={() => setSelected(l)}
+                      onClick={() => (selectionMode ? toggleSelect(l.id) : setSelected(l))}
                       title={`Lote ${nome ? `${nome} (${l.id})` : l.id} — ${meta.label}`}
                       className={cn(
                         "group relative aspect-square rounded-md border text-xs font-semibold transition focus:outline-none focus:ring-2",
                         meta.fill,
                         meta.ring,
+                        selectionMode && isSelected && "ring-2 ring-offset-2 ring-primary",
                       )}
                     >
                       <span className="absolute left-1 top-1 text-[10px] font-normal opacity-70">{l.quadra}</span>
                       <span className={cn("truncate px-1", label.length > 3 ? "text-xs" : "text-base")}>{label}</span>
+                      {selectionMode && isSelected && (
+                        <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">✓</span>
+                      )}
                     </button>
                   );
                 })}
