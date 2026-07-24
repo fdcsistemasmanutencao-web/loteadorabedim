@@ -343,11 +343,9 @@ function Index() {
         changed_by_email: userEmail,
       }));
       const { data } = await supabase.from("lot_status_history").insert(rows).select();
-      if (data && selected && data.some((d: StatusHistoryEntry) => d.lot_id === selected.id)) {
-        setHistory((prev) => [
-          ...(data as StatusHistoryEntry[]).filter((d) => d.lot_id === selected.id),
-          ...prev,
-        ]);
+      if (data && selected) {
+        const forSelected = (data as unknown as StatusHistoryEntry[]).filter((d) => d.lot_id === selected.id);
+        if (forSelected.length > 0) setHistory((prev) => [...forSelected, ...prev]);
       }
     }
     setBulkBusy(false);
