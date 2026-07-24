@@ -197,6 +197,7 @@ function Index() {
   const [precoOverrides, setPrecoOverrides] = useState<Record<string, number>>({});
   const [nomeOverrides, setNomeOverrides] = useState<Record<string, string>>({});
   const [statusOverrides, setStatusOverrides] = useState<Record<string, Status>>({});
+  const [corretorOverrides, setCorretorOverrides] = useState<Record<string, string>>({});
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -205,6 +206,10 @@ function Index() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkPendingStatus, setBulkPendingStatus] = useState<Status | null>(null);
+  const [bulkCorretor, setBulkCorretor] = useState("");
+  const [bulkCliente, setBulkCliente] = useState("");
+  const [bulkErrors, setBulkErrors] = useState<{ corretor?: string; cliente?: string }>({});
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
