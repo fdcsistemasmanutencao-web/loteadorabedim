@@ -201,6 +201,7 @@ type PersistedConfig = {
   statusOverrides: Record<string, Status>;
   corretorOverrides: Record<string, string>;
   sales: Record<string, Sale>;
+  deletedIds: string[];
 };
 
 type EmpItem = { id: string; nome: string };
