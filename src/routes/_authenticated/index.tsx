@@ -377,6 +377,7 @@ function Index() {
     setPerQuadra(cfg.perQuadra ?? 15);
     setPrecoOverrides(cfg.precoOverrides ?? {});
     setNomeOverrides(cfg.nomeOverrides ?? {});
+    setDeletedIds(new Set(cfg.deletedIds ?? []));
     setStatusOverrides(cfg.statusOverrides ?? {});
     setCorretorOverrides(cfg.corretorOverrides ?? {});
     setSales(cfg.sales ?? {});
