@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
-import { LogOut } from "lucide-react";
+import { LogOut, Settings } from "lucide-react";
+import { toast } from "sonner";
 
 const ANNUAL_RATE = 0.05;
 const DEFAULT_MESES_SEM_JUROS = 12;
