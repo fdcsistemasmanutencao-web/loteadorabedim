@@ -1443,6 +1443,7 @@ function Index() {
                         setStatusOverrides((prev) => { const n = { ...prev }; delete n[id]; return n; });
                         setCorretorOverrides((prev) => { const n = { ...prev }; delete n[id]; return n; });
                         setPrecoOverrides((prev) => { const n = { ...prev }; delete n[id]; return n; });
+                        setQuadraOverrides((prev) => { const n = { ...prev }; delete n[id]; return n; });
                         setSales((prev) => { const n = { ...prev }; delete n[id]; return n; });
                         setSelected(null);
                         toast.success("Lote excluído");
