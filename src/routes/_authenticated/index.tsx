@@ -1603,15 +1603,6 @@ function Index() {
                   placeholder="Seu nome"
                 />
               </div>
-              <div className="sm:col-span-2">
-                <Label htmlFor="acc-avatar">URL do avatar</Label>
-                <Input
-                  id="acc-avatar"
-                  value={avatarUrl}
-                  onChange={(e) => setAvatarUrl(e.target.value)}
-                  placeholder="https://…"
-                />
-              </div>
               {userCreatedAt && (
                 <div className="sm:col-span-2">
                   <Label>Conta criada em</Label>
