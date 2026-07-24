@@ -40,6 +40,15 @@ type Sale = {
   pagamentos: Pagamento[];
 };
 
+type StatusHistoryEntry = {
+  id: string;
+  lot_id: string;
+  from_status: Status | null;
+  to_status: Status;
+  changed_by_email: string | null;
+  created_at: string;
+};
+
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
     meta: [
@@ -189,9 +198,15 @@ function Index() {
   const [statusOverrides, setStatusOverrides] = useState<Record<string, Status>>({});
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [history, setHistory] = useState<StatusHistoryEntry[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUserEmail(data.user?.email ?? null));
+    supabase.auth.getUser().then(({ data }) => {
+      setUserEmail(data.user?.email ?? null);
+      setUserId(data.user?.id ?? null);
+    });
   }, []);
 
   const handleSignOut = async () => {
@@ -228,6 +243,51 @@ function Index() {
     }),
     [lotesBase, precoOverrides, statusOverrides],
   );
+
+  // Carrega histórico de status ao abrir o modal
+  useEffect(() => {
+    if (!selected || !userId) {
+      setHistory([]);
+      return;
+    }
+    setHistoryLoading(true);
+    supabase
+      .from("lot_status_history")
+      .select("*")
+      .eq("lot_id", selected.id)
+      .order("created_at", { ascending: false })
+      .limit(50)
+      .then(({ data }) => {
+        setHistory((data ?? []) as StatusHistoryEntry[]);
+        setHistoryLoading(false);
+      });
+  }, [selected, userId]);
+
+  const changeStatus = async (novo: Status) => {
+    if (!selected || !userId) return;
+    const atual = (lotes.find((l) => l.id === selected.id)?.status) ?? selected.status;
+    if (novo === atual) return;
+    setStatusOverrides((prev) => {
+      const next = { ...prev };
+      if (novo === selected.status) delete next[selected.id];
+      else next[selected.id] = novo;
+      return next;
+    });
+    const { data, error } = await supabase
+      .from("lot_status_history")
+      .insert({
+        user_id: userId,
+        lot_id: selected.id,
+        from_status: atual,
+        to_status: novo,
+        changed_by_email: userEmail,
+      })
+      .select()
+      .single();
+    if (!error && data) {
+      setHistory((prev) => [data as StatusHistoryEntry, ...prev]);
+    }
+  };
 
   const currentSale = selected
     ? (() => {
@@ -447,14 +507,7 @@ function Index() {
                         <button
                           key={s}
                           type="button"
-                          onClick={() =>
-                            setStatusOverrides((prev) => {
-                              const next = { ...prev };
-                              if (s === selected.status) delete next[selected.id];
-                              else next[selected.id] = s;
-                              return next;
-                            })
-                          }
+                          onClick={() => changeStatus(s)}
                           className={cn(
                             "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition",
                             active ? meta.fill : "border-border bg-card text-muted-foreground hover:bg-muted/50",
@@ -466,7 +519,41 @@ function Index() {
                       );
                     })}
                   </div>
+                  <div className="mt-3 rounded-md border bg-muted/30 p-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Histórico de alterações
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {historyLoading ? "carregando…" : `${history.length} registro(s)`}
+                      </span>
+                    </div>
+                    {history.length === 0 && !historyLoading ? (
+                      <p className="text-xs text-muted-foreground">Nenhuma alteração registrada ainda.</p>
+                    ) : (
+                      <ul className="max-h-40 space-y-1.5 overflow-y-auto text-xs">
+                        {history.map((h) => {
+                          const from = h.from_status ? STATUS_META[h.from_status]?.label ?? h.from_status : "—";
+                          const to = STATUS_META[h.to_status]?.label ?? h.to_status;
+                          const when = new Date(h.created_at).toLocaleString("pt-BR");
+                          return (
+                            <li key={h.id} className="flex flex-wrap items-center gap-1.5">
+                              <span className="text-muted-foreground">{when}</span>
+                              <span>·</span>
+                              <span className="font-medium">{h.changed_by_email ?? "usuário"}</span>
+                              <span className="text-muted-foreground">alterou de</span>
+                              <span className="font-medium">{from}</span>
+                              <span className="text-muted-foreground">para</span>
+                              <span className="font-medium">{to}</span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
                 </div>
+
+
 
                 {/* Dados da venda financiada */}
                 <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">

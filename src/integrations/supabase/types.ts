@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      lot_status_history: {
+        Row: {
+          changed_by_email: string | null
+          created_at: string
+          from_status: string | null
+          id: string
+          lot_id: string
+          to_status: string
+          user_id: string
+        }
+        Insert: {
+          changed_by_email?: string | null
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          lot_id: string
+          to_status: string
+          user_id: string
+        }
+        Update: {
+          changed_by_email?: string | null
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          lot_id?: string
+          to_status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
