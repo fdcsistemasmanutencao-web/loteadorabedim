@@ -182,6 +182,7 @@ const brDate = (d: Date) => d.toLocaleDateString("pt-BR");
 
 const STORAGE_KEY = "loteadora:config:v1";
 type PersistedConfig = {
+  empreendimento: string;
   total: number;
   perQuadra: number;
   precoOverrides: Record<string, number>;
@@ -190,6 +191,8 @@ type PersistedConfig = {
   corretorOverrides: Record<string, string>;
   sales: Record<string, Sale>;
 };
+
+const DEFAULT_EMPREENDIMENTO = "Empreendimento Residencial Jardim das Palmeiras";
 
 function loadConfig(): Partial<PersistedConfig> {
   if (typeof window === "undefined") return {};
@@ -207,6 +210,8 @@ function Index() {
   const [filters, setFilters] = useState<Set<Status>>(new Set(STATUS_ORDER));
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Lote | null>(null);
+  const [empreendimento, setEmpreendimento] = useState(DEFAULT_EMPREENDIMENTO);
+  const [empreendimentoEdit, setEmpreendimentoEdit] = useState(false);
   const [total, setTotal] = useState(150);
   const [perQuadra, setPerQuadra] = useState(15);
   const [sales, setSales] = useState<Record<string, Sale>>({});
@@ -244,6 +249,7 @@ function Index() {
   // Carregar configuração salva
   useEffect(() => {
     const cfg = loadConfig();
+    if (cfg.empreendimento) setEmpreendimento(cfg.empreendimento);
     if (cfg.total) setTotal(cfg.total);
     if (cfg.perQuadra) setPerQuadra(cfg.perQuadra);
     if (cfg.precoOverrides) setPrecoOverrides(cfg.precoOverrides);
@@ -254,7 +260,7 @@ function Index() {
   }, []);
 
   const salvarConfig = () => {
-    const payload: PersistedConfig = { total, perQuadra, precoOverrides, nomeOverrides, statusOverrides, corretorOverrides, sales };
+    const payload: PersistedConfig = { empreendimento, total, perQuadra, precoOverrides, nomeOverrides, statusOverrides, corretorOverrides, sales };
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     setSavedAt(new Date().toLocaleTimeString("pt-BR"));
   };
@@ -600,7 +606,34 @@ function Index() {
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-6 py-5 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Mapa de Lotes</h1>
-            <p className="text-sm text-muted-foreground">Empreendimento Residencial Jardim das Palmeiras</p>
+            {empreendimentoEdit ? (
+              <div className="mt-1 flex items-center gap-2">
+                <Input
+                  value={empreendimento}
+                  maxLength={160}
+                  onChange={(e) => setEmpreendimento(e.target.value)}
+                  placeholder="Nome do empreendimento"
+                  className="h-8 w-72"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") setEmpreendimentoEdit(false);
+                    if (e.key === "Escape") setEmpreendimentoEdit(false);
+                  }}
+                />
+                <Button size="sm" variant="outline" className="h-8" onClick={() => setEmpreendimentoEdit(false)}>
+                  OK
+                </Button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setEmpreendimentoEdit(true)}
+                title="Editar nome do empreendimento"
+                className="text-left text-sm text-muted-foreground hover:text-foreground hover:underline"
+              >
+                {empreendimento || "Definir nome do empreendimento"}
+              </button>
+            )}
           </div>
           <div className="flex w-full items-center gap-2 md:w-auto">
             <div className="flex-1 md:w-72">
