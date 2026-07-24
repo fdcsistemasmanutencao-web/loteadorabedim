@@ -270,6 +270,13 @@ function Index() {
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [userCreatedAt, setUserCreatedAt] = useState<string | null>(null);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [displayName, setDisplayName] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [savingAccount, setSavingAccount] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [changingPwd, setChangingPwd] = useState(false);
   const [history, setHistory] = useState<StatusHistoryEntry[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
@@ -286,11 +293,49 @@ function Index() {
   const [empsLoaded, setEmpsLoaded] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUserEmail(data.user?.email ?? null);
-      setUserId(data.user?.id ?? null);
+    supabase.auth.getUser().then(async ({ data }) => {
+      const u = data.user;
+      setUserEmail(u?.email ?? null);
+      setUserId(u?.id ?? null);
+      setUserCreatedAt(u?.created_at ?? null);
+      if (u?.id) {
+        const { data: p } = await supabase
+          .from("profiles")
+          .select("display_name, avatar_url")
+          .eq("id", u.id)
+          .maybeSingle();
+        setDisplayName(p?.display_name ?? "");
+        setAvatarUrl(p?.avatar_url ?? "");
+      }
     });
   }, []);
+
+  const handleSaveAccount = async () => {
+    if (!userId) return;
+    setSavingAccount(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ display_name: displayName || null, avatar_url: avatarUrl || null })
+      .eq("id", userId);
+    setSavingAccount(false);
+    if (error) toast.error("Erro ao salvar: " + error.message);
+    else toast.success("Dados atualizados");
+  };
+
+  const handleChangePassword = async () => {
+    if (newPassword.length < 6) {
+      toast.error("A senha deve ter pelo menos 6 caracteres");
+      return;
+    }
+    setChangingPwd(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setChangingPwd(false);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Senha alterada");
+      setNewPassword("");
+    }
+  };
 
   const handleSignOut = async () => {
     await queryClient.cancelQueries();
