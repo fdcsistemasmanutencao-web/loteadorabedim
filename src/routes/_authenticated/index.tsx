@@ -182,6 +182,7 @@ const brDate = (d: Date) => d.toLocaleDateString("pt-BR");
 
 const STORAGE_KEY = "loteadora:config:v1";
 type PersistedConfig = {
+  empreendimento: string;
   total: number;
   perQuadra: number;
   precoOverrides: Record<string, number>;
@@ -190,6 +191,8 @@ type PersistedConfig = {
   corretorOverrides: Record<string, string>;
   sales: Record<string, Sale>;
 };
+
+const DEFAULT_EMPREENDIMENTO = "Empreendimento Residencial Jardim das Palmeiras";
 
 function loadConfig(): Partial<PersistedConfig> {
   if (typeof window === "undefined") return {};
