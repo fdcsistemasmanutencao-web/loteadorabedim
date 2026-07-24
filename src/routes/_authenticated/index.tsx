@@ -265,7 +265,7 @@ function Index() {
 
   const changeStatus = async (novo: Status) => {
     if (!selected || !userId) return;
-    const atual = live?.status ?? selected.status;
+    const atual = (lotes.find((l) => l.id === selected.id)?.status) ?? selected.status;
     if (novo === atual) return;
     setStatusOverrides((prev) => {
       const next = { ...prev };
