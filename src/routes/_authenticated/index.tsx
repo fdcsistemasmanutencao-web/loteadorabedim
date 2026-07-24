@@ -606,7 +606,34 @@ function Index() {
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-6 py-5 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Mapa de Lotes</h1>
-            <p className="text-sm text-muted-foreground">Empreendimento Residencial Jardim das Palmeiras</p>
+            {empreendimentoEdit ? (
+              <div className="mt-1 flex items-center gap-2">
+                <Input
+                  value={empreendimento}
+                  maxLength={160}
+                  onChange={(e) => setEmpreendimento(e.target.value)}
+                  placeholder="Nome do empreendimento"
+                  className="h-8 w-72"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") setEmpreendimentoEdit(false);
+                    if (e.key === "Escape") setEmpreendimentoEdit(false);
+                  }}
+                />
+                <Button size="sm" variant="outline" className="h-8" onClick={() => setEmpreendimentoEdit(false)}>
+                  OK
+                </Button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setEmpreendimentoEdit(true)}
+                title="Editar nome do empreendimento"
+                className="text-left text-sm text-muted-foreground hover:text-foreground hover:underline"
+              >
+                {empreendimento || "Definir nome do empreendimento"}
+              </button>
+            )}
           </div>
           <div className="flex w-full items-center gap-2 md:w-auto">
             <div className="flex-1 md:w-72">
