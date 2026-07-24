@@ -39,6 +39,12 @@ type Sale = {
   parcelas: number;
   mesesSemJuros: number;
   dataPrimeiraParcela?: string | null;
+  email?: string;
+  celular?: string;
+  cpf?: string;
+  endereco?: string;
+  bairro?: string;
+  cidade?: string;
   pagamentos: Pagamento[];
 };
 
