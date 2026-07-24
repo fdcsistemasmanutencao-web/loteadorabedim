@@ -189,9 +189,15 @@ function Index() {
   const [statusOverrides, setStatusOverrides] = useState<Record<string, Status>>({});
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [history, setHistory] = useState<StatusHistoryEntry[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUserEmail(data.user?.email ?? null));
+    supabase.auth.getUser().then(({ data }) => {
+      setUserEmail(data.user?.email ?? null);
+      setUserId(data.user?.id ?? null);
+    });
   }, []);
 
   const handleSignOut = async () => {
