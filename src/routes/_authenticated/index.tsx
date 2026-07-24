@@ -1154,7 +1154,7 @@ function Index() {
       </main>
 
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+        <DialogContent className="max-h-[92vh] w-[calc(100vw-1.5rem)] max-w-[calc(100vw-1.5rem)] overflow-y-auto p-4 sm:max-w-2xl sm:p-6">
           {selected && currentSale && (() => {
             const live = lotes.find((l) => l.id === selected.id) ?? selected;
             const preco = live.preco;
