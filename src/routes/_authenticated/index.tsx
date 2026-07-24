@@ -292,6 +292,67 @@ function Index() {
     }
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const selectAllFiltered = () => {
+    const ids = new Set<string>();
+    for (const l of lotes) {
+      if (!filters.has(l.status)) continue;
+      if (search) {
+        const q = search.toLowerCase();
+        const hay = `${l.id} ${nomeOverrides[l.id] ?? ""} ${l.cliente ?? ""} ${l.corretor ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) continue;
+      }
+      ids.add(l.id);
+    }
+    setSelectedIds(ids);
+  };
+
+  const bulkChangeStatus = async (novo: Status) => {
+    if (!userId || selectedIds.size === 0) return;
+    setBulkBusy(true);
+    const ids = Array.from(selectedIds);
+    const currentById = new Map(lotes.map((l) => [l.id, l.status] as const));
+    const toApply = ids.filter((id) => currentById.get(id) !== novo);
+
+    setStatusOverrides((prev) => {
+      const next = { ...prev };
+      for (const id of toApply) {
+        const base = lotesBase.find((l) => l.id === id);
+        if (base && novo === base.status) delete next[id];
+        else next[id] = novo;
+      }
+      return next;
+    });
+
+    if (toApply.length > 0) {
+      const rows = toApply.map((id) => ({
+        user_id: userId,
+        lot_id: id,
+        from_status: currentById.get(id) ?? null,
+        to_status: novo,
+        changed_by_email: userEmail,
+      }));
+      const { data } = await supabase.from("lot_status_history").insert(rows).select();
+      if (data && selected && data.some((d: StatusHistoryEntry) => d.lot_id === selected.id)) {
+        setHistory((prev) => [
+          ...(data as StatusHistoryEntry[]).filter((d) => d.lot_id === selected.id),
+          ...prev,
+        ]);
+      }
+    }
+    setBulkBusy(false);
+  };
+
   const currentSale = selected
     ? (() => {
         const s = sales[selected.id] ?? defaultSale(selected);
