@@ -806,9 +806,9 @@ function Index() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b bg-card">
-        <div className="mx-auto flex max-w-7xl flex-col gap-2 px-6 py-5 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Mapa de Lotes</h1>
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-4 sm:px-6 sm:py-5 md:flex-row md:items-center md:justify-between">
+          <div className="min-w-0">
+            <h1 className="truncate text-xl font-semibold tracking-tight sm:text-2xl">Mapa de Lotes</h1>
             {empreendimentoEdit ? (
               <div className="mt-1 flex items-center gap-2">
                 <Input
@@ -816,7 +816,8 @@ function Index() {
                   maxLength={160}
                   onChange={(e) => setEmpreendimento(e.target.value)}
                   placeholder="Nome do loteamento"
-                  className="h-8 w-72"
+                  className="h-8 w-full sm:w-72"
+
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === "Enter") setEmpreendimentoEdit(false);
@@ -839,12 +840,12 @@ function Index() {
             )}
           </div>
           <div className="flex w-full flex-wrap items-center gap-2 md:w-auto">
-            <label className="flex items-center gap-1 text-xs text-muted-foreground">
+            <label className="flex min-w-0 flex-1 items-center gap-1 text-xs text-muted-foreground sm:flex-none">
               <span className="hidden sm:inline">Empreendimento</span>
               <select
                 value={activeEmpId}
                 onChange={(e) => switchEmpreendimento(e.target.value)}
-                className="h-9 max-w-[180px] rounded-md border border-input bg-background px-2 text-sm"
+                className="h-9 w-full min-w-0 rounded-md border border-input bg-background px-2 text-sm sm:max-w-[180px]"
                 title="Trocar de empreendimento"
               >
                 {empList.map((e) => (
@@ -854,7 +855,7 @@ function Index() {
                 ))}
               </select>
             </label>
-            <Button variant="outline" size="sm" onClick={criarEmpreendimento} className="h-9" title="Novo empreendimento">
+            <Button variant="outline" size="sm" onClick={criarEmpreendimento} className="h-9 shrink-0" title="Novo empreendimento">
               + Novo
             </Button>
             <Button
@@ -862,18 +863,19 @@ function Index() {
               size="sm"
               onClick={excluirEmpreendimento}
               disabled={empList.length <= 1}
-              className="h-9"
+              className="h-9 shrink-0"
               title="Excluir empreendimento atual"
             >
               Excluir
             </Button>
-            <div className="flex-1 md:w-72">
+            <div className="w-full md:w-72">
               <Input
                 placeholder="Buscar por lote, cliente ou corretor…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
+
             {userEmail && (
               <span className="hidden text-xs text-muted-foreground lg:inline">{userEmail}</span>
             )}
@@ -890,9 +892,10 @@ function Index() {
       </header>
 
 
-      <main className="mx-auto max-w-7xl px-6 py-6">
+      <main className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-6">
         {/* Filtros / Legenda */}
         <div className="mb-6 flex flex-wrap items-center gap-2">
+
           {STATUS_ORDER.map((s) => {
             const meta = STATUS_META[s];
             const active = filters.has(s);
@@ -911,7 +914,7 @@ function Index() {
               </button>
             );
           })}
-          <div className="ml-auto flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+          <div className="flex w-full flex-wrap items-center gap-3 text-sm text-muted-foreground md:ml-auto md:w-auto">
             <label className="flex items-center gap-2">
               <span>Total de lotes</span>
               <Input
@@ -1110,14 +1113,15 @@ function Index() {
             </div>
           )}
           {Object.entries(quadras).map(([q, lotes]) => (
-            <section key={q} className="rounded-xl border bg-card p-5 shadow-sm">
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            <section key={q} className="rounded-xl border bg-card p-3 shadow-sm sm:p-5">
+              <div className="mb-4 flex items-center justify-between gap-2">
+                <h2 className="truncate text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                   Quadra {q}
                 </h2>
-                <span className="text-xs text-muted-foreground">{lotes.length} lotes</span>
+                <span className="shrink-0 text-xs text-muted-foreground">{lotes.length} lotes</span>
               </div>
-              <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12">
+              <div className="grid grid-cols-3 gap-2 xs:grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12">
+
                 {lotes.map((l) => {
                   const meta = STATUS_META[l.status];
                   const nome = nomeOverrides[l.id];
@@ -1150,7 +1154,7 @@ function Index() {
       </main>
 
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+        <DialogContent className="max-h-[92vh] w-[calc(100vw-1.5rem)] max-w-[calc(100vw-1.5rem)] overflow-y-auto p-4 sm:max-w-2xl sm:p-6">
           {selected && currentSale && (() => {
             const live = lotes.find((l) => l.id === selected.id) ?? selected;
             const preco = live.preco;
@@ -1161,17 +1165,18 @@ function Index() {
             return (
               <>
                 <DialogHeader>
-                  <div className="flex items-center justify-between gap-3">
-                    <DialogTitle className="text-xl">Lote {nomeOverrides[selected.id] ? `${nomeOverrides[selected.id]} · ${selected.id}` : selected.id}</DialogTitle>
-                    <Badge variant="outline" className={cn("border", STATUS_META[live.status].badge)}>
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <DialogTitle className="min-w-0 break-words text-lg sm:text-xl">Lote {nomeOverrides[selected.id] ? `${nomeOverrides[selected.id]} · ${selected.id}` : selected.id}</DialogTitle>
+                    <Badge variant="outline" className={cn("shrink-0 border", STATUS_META[live.status].badge)}>
                       <span className={cn("mr-1.5 h-2 w-2 rounded-full", STATUS_META[live.status].dot)} />
                       {STATUS_META[live.status].label}
                     </Badge>
                   </div>
+
                   <DialogDescription>
                     Quadra {selected.quadra} · Lote {selected.numero} · {selected.area} m² · Valor {brl(preco)}
                   </DialogDescription>
-                  <div className="mt-3 flex items-center gap-2">
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
                     <Label htmlFor="nomeLoteTop" className="whitespace-nowrap text-xs text-muted-foreground">
                       Nome do lote
                     </Label>
@@ -1188,7 +1193,8 @@ function Index() {
                         });
                       }}
                       placeholder={`Ex.: ${selected.id} (padrão)`}
-                      className="h-8"
+                      className="h-8 min-w-[10rem] flex-1"
+
                     />
                     <Button
                       variant="outline"
@@ -1465,8 +1471,9 @@ function Index() {
                       Pago: <span className="font-medium text-foreground">{brl(totalPago)}</span>
                     </div>
                   </div>
-                  <div className="max-h-72 overflow-y-auto rounded-md border">
-                    <table className="w-full text-sm">
+                  <div className="max-h-72 overflow-auto rounded-md border">
+                    <table className="w-full min-w-[34rem] text-sm">
+
                       <thead className="sticky top-0 bg-muted/60 text-xs uppercase tracking-wide text-muted-foreground">
                         <tr>
                           <th className="px-3 py-2 text-left">#</th>
@@ -1522,7 +1529,7 @@ function Index() {
                                     const d = e.target.value;
                                     updatePagamento(selected.id, i, { data: d === "" ? null : d });
                                   }}
-                                  className="ml-auto h-8 w-40"
+                                  className="ml-auto h-8 w-36"
                                 />
                               </td>
                               <td className="px-3 py-1.5 text-right text-xs font-medium">
