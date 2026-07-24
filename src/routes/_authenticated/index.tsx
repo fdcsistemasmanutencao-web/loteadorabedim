@@ -1495,6 +1495,99 @@ function Index() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Minha conta */}
+      <Dialog open={accountOpen} onOpenChange={setAccountOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Minha conta</DialogTitle>
+            <DialogDescription>Dados do usuário e preferências.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="" className="h-14 w-14 rounded-full object-cover border" />
+              ) : (
+                <div className="flex h-14 w-14 items-center justify-center rounded-full border bg-muted text-lg font-semibold">
+                  {(displayName || userEmail || "?").charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{displayName || "(sem nome)"}</p>
+                <p className="truncate text-xs text-muted-foreground">{userEmail}</p>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="acc-email">E-mail</Label>
+                <Input id="acc-email" value={userEmail ?? ""} readOnly disabled />
+              </div>
+              <div>
+                <Label htmlFor="acc-id">ID</Label>
+                <Input id="acc-id" value={userId ?? ""} readOnly disabled className="font-mono text-xs" />
+              </div>
+              <div className="sm:col-span-2">
+                <Label htmlFor="acc-name">Nome de exibição</Label>
+                <Input
+                  id="acc-name"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="Seu nome"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <Label htmlFor="acc-avatar">URL do avatar</Label>
+                <Input
+                  id="acc-avatar"
+                  value={avatarUrl}
+                  onChange={(e) => setAvatarUrl(e.target.value)}
+                  placeholder="https://…"
+                />
+              </div>
+              {userCreatedAt && (
+                <div className="sm:col-span-2">
+                  <Label>Conta criada em</Label>
+                  <p className="text-sm text-muted-foreground">
+                    {new Date(userCreatedAt).toLocaleString("pt-BR")}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end">
+              <Button onClick={handleSaveAccount} disabled={savingAccount || !userId}>
+                {savingAccount ? "Salvando…" : "Salvar dados"}
+              </Button>
+            </div>
+
+            <div className="border-t pt-4">
+              <Label htmlFor="acc-pwd">Alterar senha</Label>
+              <div className="mt-1 flex gap-2">
+                <Input
+                  id="acc-pwd"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Nova senha (mín. 6)"
+                  autoComplete="new-password"
+                />
+                <Button variant="outline" onClick={handleChangePassword} disabled={changingPwd || !newPassword}>
+                  {changingPwd ? "…" : "Alterar"}
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between border-t pt-4">
+              <span className="text-xs text-muted-foreground">Encerrar sessão neste dispositivo</span>
+              <Button variant="destructive" size="sm" onClick={handleSignOut}>
+                <LogOut className="mr-1 h-4 w-4" /> Sair
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
