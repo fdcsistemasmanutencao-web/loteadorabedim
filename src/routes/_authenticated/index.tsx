@@ -840,12 +840,12 @@ function Index() {
             )}
           </div>
           <div className="flex w-full flex-wrap items-center gap-2 md:w-auto">
-            <label className="flex items-center gap-1 text-xs text-muted-foreground">
+            <label className="flex min-w-0 flex-1 items-center gap-1 text-xs text-muted-foreground sm:flex-none">
               <span className="hidden sm:inline">Empreendimento</span>
               <select
                 value={activeEmpId}
                 onChange={(e) => switchEmpreendimento(e.target.value)}
-                className="h-9 max-w-[180px] rounded-md border border-input bg-background px-2 text-sm"
+                className="h-9 w-full min-w-0 rounded-md border border-input bg-background px-2 text-sm sm:max-w-[180px]"
                 title="Trocar de empreendimento"
               >
                 {empList.map((e) => (
@@ -855,7 +855,7 @@ function Index() {
                 ))}
               </select>
             </label>
-            <Button variant="outline" size="sm" onClick={criarEmpreendimento} className="h-9" title="Novo empreendimento">
+            <Button variant="outline" size="sm" onClick={criarEmpreendimento} className="h-9 shrink-0" title="Novo empreendimento">
               + Novo
             </Button>
             <Button
@@ -863,18 +863,19 @@ function Index() {
               size="sm"
               onClick={excluirEmpreendimento}
               disabled={empList.length <= 1}
-              className="h-9"
+              className="h-9 shrink-0"
               title="Excluir empreendimento atual"
             >
               Excluir
             </Button>
-            <div className="flex-1 md:w-72">
+            <div className="w-full md:w-72">
               <Input
                 placeholder="Buscar por lote, cliente ou corretor…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
+
             {userEmail && (
               <span className="hidden text-xs text-muted-foreground lg:inline">{userEmail}</span>
             )}
