@@ -123,7 +123,7 @@ function quadraName(i: number): string {
   return `${first}${second}`;
 }
 
-function generateLotes(total: number, perQuadra: number): Lote[] {
+function generateLotes(total: number, perQuadra: number, quadraSizes: Record<string, number> = {}): Lote[] {
   const statuses: Status[] = ["disponivel", "disponivel", "disponivel", "reservado", "vendido", "vendido", "cancelado"];
   const clientes = ["Maria Silva", "João Souza", "Ana Costa", "Carlos Lima", "Bruno Alves", "Paula Rocha"];
   const corretores = ["R. Mendes", "L. Ferreira", "T. Oliveira"];
@@ -135,10 +135,16 @@ function generateLotes(total: number, perQuadra: number): Lote[] {
   };
   let qIdx = 0;
   let nInQuadra = 0;
+  const capFor = (name: string) => {
+    const v = quadraSizes[name];
+    return v && v > 0 ? Math.floor(v) : perQuadra;
+  };
+  let currentCap = capFor(quadraName(0));
   for (let i = 0; i < total; i++) {
-    if (nInQuadra >= perQuadra) {
+    if (nInQuadra >= currentCap) {
       qIdx++;
       nInQuadra = 0;
+      currentCap = capFor(quadraName(qIdx));
     }
     nInQuadra++;
     const q = quadraName(qIdx);
@@ -159,6 +165,7 @@ function generateLotes(total: number, perQuadra: number): Lote[] {
   }
   return out;
 }
+
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 2 });
 
@@ -196,6 +203,7 @@ type PersistedConfig = {
   empreendimento: string;
   total: number;
   perQuadra: number;
+  quadraSizes: Record<string, number>;
   precoOverrides: Record<string, number>;
   nomeOverrides: Record<string, string>;
   numeroOverrides: Record<string, string>;
@@ -204,6 +212,7 @@ type PersistedConfig = {
   sales: Record<string, Sale>;
   deletedIds: string[];
 };
+
 
 type EmpItem = { id: string; nome: string };
 
@@ -270,6 +279,9 @@ function Index() {
   const [empreendimentoEdit, setEmpreendimentoEdit] = useState(false);
   const [total, setTotal] = useState(150);
   const [perQuadra, setPerQuadra] = useState(15);
+  const [quadraSizes, setQuadraSizes] = useState<Record<string, number>>({});
+  const [quadraDialogOpen, setQuadraDialogOpen] = useState(false);
+
   const [sales, setSales] = useState<Record<string, Sale>>({});
   const [precoOverrides, setPrecoOverrides] = useState<Record<string, number>>({});
   const [nomeOverrides, setNomeOverrides] = useState<Record<string, string>>({});
@@ -377,6 +389,8 @@ function Index() {
     setEmpreendimento(cfg.empreendimento ?? DEFAULT_EMPREENDIMENTO);
     setTotal(cfg.total ?? 150);
     setPerQuadra(cfg.perQuadra ?? 15);
+    setQuadraSizes(cfg.quadraSizes ?? {});
+
     setPrecoOverrides(cfg.precoOverrides ?? {});
     setNomeOverrides(cfg.nomeOverrides ?? {});
     setNumeroOverrides(cfg.numeroOverrides ?? {});
@@ -398,8 +412,9 @@ function Index() {
 
   const persistConfigFor = (id: string) => {
     if (!id) return;
-    const payload: PersistedConfig = { empreendimento, total, perQuadra, precoOverrides, nomeOverrides, numeroOverrides, statusOverrides, corretorOverrides, sales, deletedIds: Array.from(deletedIds) };
+    const payload: PersistedConfig = { empreendimento, total, perQuadra, quadraSizes, precoOverrides, nomeOverrides, numeroOverrides, statusOverrides, corretorOverrides, sales, deletedIds: Array.from(deletedIds) };
     window.localStorage.setItem(configKey(id), JSON.stringify(payload));
+
   };
 
   const salvarConfig = () => {
@@ -469,7 +484,7 @@ function Index() {
 
 
 
-  const lotesBase = useMemo(() => generateLotes(total, perQuadra), [total, perQuadra]);
+  const lotesBase = useMemo(() => generateLotes(total, perQuadra, quadraSizes), [total, perQuadra, quadraSizes]);
   const lotes = useMemo(
     () => lotesBase
       .filter((l) => !deletedIds.has(l.id))
@@ -944,9 +959,13 @@ function Index() {
               <span className="font-medium text-foreground">{lotes.length}</span> lotes ·{" "}
               <span className="font-medium text-foreground">{Object.keys(quadras).length || Math.ceil(total / perQuadra)}</span> quadras
             </span>
+            <Button size="sm" variant="outline" onClick={() => setQuadraDialogOpen(true)} className="h-8">
+              Por quadra
+            </Button>
             <Button size="sm" variant="outline" onClick={salvarConfig} className="h-8">
               Salvar configuração
             </Button>
+
             {savedAt && <span className="text-xs">Salvo às {savedAt}</span>}
             <Button
               size="sm"
@@ -1502,12 +1521,14 @@ function Index() {
                       <thead className="sticky top-0 bg-muted/60 text-xs uppercase tracking-wide text-muted-foreground">
                         <tr>
                           <th className="px-3 py-2 text-left">#</th>
+                          <th className="px-3 py-2 text-right">Vencimento</th>
                           <th className="px-3 py-2 text-right">Esperado</th>
                           <th className="px-3 py-2 text-right">Valor recebido</th>
                           <th className="px-3 py-2 text-right">Data pagto</th>
                           <th className="px-3 py-2 text-right">Status</th>
                         </tr>
                       </thead>
+
                       <tbody>
                         {currentSale.pagamentos.map((pago, i) => {
                           const esperado = parcelaEsperadaMes(financiado, currentSale.parcelas, i + 1, currentSale.mesesSemJuros);
@@ -1524,10 +1545,13 @@ function Index() {
                           const anoLabel = mes <= currentSale.mesesSemJuros
                             ? "c"
                             : `a${Math.floor((mes - currentSale.mesesSemJuros - 1) / 12) + 2}`;
+                          const venc = currentSale.dataPrimeiraParcela ? addMonths(currentSale.dataPrimeiraParcela, i) : null;
                           return (
                             <tr key={i} className={cn("border-t", rowClass)}>
                               <td className="px-3 py-1.5 text-muted-foreground">{i + 1} <span className="text-[10px] opacity-60">{anoLabel}</span></td>
+                              <td className="px-3 py-1.5 text-right tabular-nums text-muted-foreground">{venc ? brDate(venc) : "—"}</td>
                               <td className="px-3 py-1.5 text-right tabular-nums">{brl(esperado)}</td>
+
                               <td className="px-3 py-1.5 text-right">
                                 <Input
                                   type="number"
@@ -1739,6 +1763,53 @@ function Index() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={quadraDialogOpen} onOpenChange={setQuadraDialogOpen}>
+        <DialogContent className="w-[calc(100vw-1.5rem)] max-h-[85vh] overflow-auto sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Lotes por quadra</DialogTitle>
+            <DialogDescription>
+              Defina quantos lotes cada quadra terá. Deixe em branco para usar o padrão global ({perQuadra}).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-2 space-y-2">
+            {Object.keys(quadras).length === 0 && (
+              <p className="text-sm text-muted-foreground">Nenhuma quadra gerada ainda.</p>
+            )}
+            {Object.keys(quadras).map((q) => {
+              const val = quadraSizes[q];
+              return (
+                <div key={q} className="flex items-center gap-3">
+                  <span className="w-16 text-sm font-medium">Quadra {q}</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={200}
+                    value={val ?? ""}
+                    placeholder={String(perQuadra)}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      setQuadraSizes((prev) => {
+                        const next = { ...prev };
+                        if (raw === "") delete next[q];
+                        else next[q] = Math.max(1, Math.min(200, Number(raw) || 1));
+                        return next;
+                      });
+                    }}
+                    className="h-8 w-24"
+                  />
+                  <span className="text-xs text-muted-foreground">{quadras[q]?.length ?? 0} atuais</span>
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-4 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setQuadraSizes({})}>Limpar todas</Button>
+            <Button onClick={() => setQuadraDialogOpen(false)}>Fechar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
