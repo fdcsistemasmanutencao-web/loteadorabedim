@@ -1273,6 +1273,9 @@ function Index() {
 
 
         {/* Mapa por quadra */}
+        <p className="mb-3 text-xs text-muted-foreground">
+          Dica: arraste um lote e solte em outra quadra para movê-lo. Lembre de salvar a configuração.
+        </p>
         <div className="space-y-6">
           {Object.keys(quadras).length === 0 && (
             <div className="rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">
@@ -1280,15 +1283,40 @@ function Index() {
             </div>
           )}
           {Object.entries(quadras).map(([q, lotes]) => (
-            <section key={q} className="rounded-xl border bg-card p-3 shadow-sm sm:p-5">
+            <section
+              key={q}
+              onDragOver={(e) => {
+                if (!dragLoteId) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                if (dragOverQuadra !== q) setDragOverQuadra(q);
+              }}
+              onDragLeave={() => setDragOverQuadra((cur) => (cur === q ? null : cur))}
+              onDrop={(e) => {
+                e.preventDefault();
+                const id = e.dataTransfer.getData("text/plain") || dragLoteId;
+                if (id) moverLoteParaQuadra(id, q);
+                setDragLoteId(null);
+                setDragOverQuadra(null);
+              }}
+              className={cn(
+                "rounded-xl border bg-card p-3 shadow-sm transition sm:p-5",
+                dragOverQuadra === q && "border-primary ring-2 ring-primary/40",
+              )}
+            >
               <div className="mb-4 flex items-center justify-between gap-2">
                 <h2 className="truncate text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                   Quadra {q}
                 </h2>
                 <span className="shrink-0 text-xs text-muted-foreground">{lotes.length} lotes</span>
               </div>
-              <div className="grid grid-cols-3 gap-2 xs:grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12">
+              <div className="grid min-h-16 grid-cols-3 gap-2 xs:grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12">
 
+                {lotes.length === 0 && (
+                  <div className="col-span-full rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground">
+                    Solte um lote aqui
+                  </div>
+                )}
                 {lotes.map((l) => {
                   const meta = STATUS_META[l.status];
                   const nome = nomeOverrides[l.id];
@@ -1298,13 +1326,24 @@ function Index() {
                   return (
                     <button
                       key={l.id}
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData("text/plain", l.id);
+                        e.dataTransfer.effectAllowed = "move";
+                        setDragLoteId(l.id);
+                      }}
+                      onDragEnd={() => {
+                        setDragLoteId(null);
+                        setDragOverQuadra(null);
+                      }}
                       onClick={() => (selectionMode ? toggleSelect(l.id) : setSelected(l))}
-                      title={`Lote ${nome ? `${nome} (${numeroLabel})` : numeroLabel} — ${meta.label}`}
+                      title={`Lote ${nome ? `${nome} (${numeroLabel})` : numeroLabel} — ${meta.label} (arraste para mover de quadra)`}
                       className={cn(
-                        "group relative aspect-square rounded-md border text-xs font-semibold transition focus:outline-none focus:ring-2",
+                        "group relative aspect-square cursor-grab rounded-md border text-xs font-semibold transition focus:outline-none focus:ring-2 active:cursor-grabbing",
                         meta.fill,
                         meta.ring,
                         selectionMode && isSelected && "ring-2 ring-offset-2 ring-primary",
+                        dragLoteId === l.id && "opacity-50",
                       )}
                     >
                       <span className="absolute left-1 top-1 text-[10px] font-normal opacity-70">{l.quadra}</span>
@@ -1320,6 +1359,7 @@ function Index() {
           ))}
         </div>
       </main>
+
 
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
         <DialogContent className="max-h-[92vh] w-[calc(100vw-1.5rem)] max-w-[calc(100vw-1.5rem)] overflow-y-auto p-4 sm:max-w-2xl sm:p-6">
