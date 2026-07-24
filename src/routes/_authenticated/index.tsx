@@ -32,7 +32,7 @@ function totalContratoCalc(financiado: number, n: number, mesesSemJuros: number 
   return s;
 }
 
-type Pagamento = { valor: number | null; data: string | null };
+type Pagamento = { valor: number | null; data: string | null; venc?: string | null };
 type Sale = {
   cliente: string;
   entrada: number;
