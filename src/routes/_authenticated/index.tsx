@@ -1165,13 +1165,14 @@ function Index() {
             return (
               <>
                 <DialogHeader>
-                  <div className="flex items-center justify-between gap-3">
-                    <DialogTitle className="text-xl">Lote {nomeOverrides[selected.id] ? `${nomeOverrides[selected.id]} · ${selected.id}` : selected.id}</DialogTitle>
-                    <Badge variant="outline" className={cn("border", STATUS_META[live.status].badge)}>
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <DialogTitle className="min-w-0 break-words text-lg sm:text-xl">Lote {nomeOverrides[selected.id] ? `${nomeOverrides[selected.id]} · ${selected.id}` : selected.id}</DialogTitle>
+                    <Badge variant="outline" className={cn("shrink-0 border", STATUS_META[live.status].badge)}>
                       <span className={cn("mr-1.5 h-2 w-2 rounded-full", STATUS_META[live.status].dot)} />
                       {STATUS_META[live.status].label}
                     </Badge>
                   </div>
+
                   <DialogDescription>
                     Quadra {selected.quadra} · Lote {selected.numero} · {selected.area} m² · Valor {brl(preco)}
                   </DialogDescription>
