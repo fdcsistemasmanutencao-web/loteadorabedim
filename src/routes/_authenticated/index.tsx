@@ -892,9 +892,10 @@ function Index() {
       </header>
 
 
-      <main className="mx-auto max-w-7xl px-6 py-6">
+      <main className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-6">
         {/* Filtros / Legenda */}
         <div className="mb-6 flex flex-wrap items-center gap-2">
+
           {STATUS_ORDER.map((s) => {
             const meta = STATUS_META[s];
             const active = filters.has(s);
