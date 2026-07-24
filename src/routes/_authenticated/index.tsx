@@ -1670,11 +1670,35 @@ function Index() {
                           const anoLabel = mes <= currentSale.mesesSemJuros
                             ? "c"
                             : `a${Math.floor((mes - currentSale.mesesSemJuros - 1) / 12) + 2}`;
-                          const venc = currentSale.dataPrimeiraParcela ? addMonths(currentSale.dataPrimeiraParcela, i) : null;
+                          const manual = isValidISODate(pago.venc);
+                          const venc = vencimentoParcela(currentSale, i);
                           return (
                             <tr key={i} className={cn("border-t", rowClass)}>
                               <td className="px-3 py-1.5 text-muted-foreground">{i + 1} <span className="text-[10px] opacity-60">{anoLabel}</span></td>
-                              <td className="px-3 py-1.5 text-right tabular-nums text-muted-foreground">{venc ? brDate(venc) : "—"}</td>
+                              <td className="px-3 py-1.5 text-right">
+                                <div className="flex items-center justify-end gap-1">
+                                  <Input
+                                    type="date"
+                                    value={venc ? toISO(venc) : ""}
+                                    onChange={(e) => {
+                                      const v = e.target.value;
+                                      updatePagamento(selected.id, i, { venc: v === "" ? null : v });
+                                    }}
+                                    className={cn("ml-auto h-8 w-36", manual && "border-amber-500 bg-amber-500/10")}
+                                    title={manual ? "Vencimento ajustado manualmente" : "Vencimento automático"}
+                                  />
+                                  {manual && (
+                                    <button
+                                      type="button"
+                                      onClick={() => updatePagamento(selected.id, i, { venc: null })}
+                                      className="text-[10px] text-amber-600 underline dark:text-amber-400"
+                                      title="Voltar ao cálculo automático"
+                                    >
+                                      auto
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
                               <td className="px-3 py-1.5 text-right tabular-nums">{brl(esperado)}</td>
 
                               <td className="px-3 py-1.5 text-right">
