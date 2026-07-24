@@ -272,6 +272,7 @@ function Index() {
   const [sales, setSales] = useState<Record<string, Sale>>({});
   const [precoOverrides, setPrecoOverrides] = useState<Record<string, number>>({});
   const [nomeOverrides, setNomeOverrides] = useState<Record<string, string>>({});
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
   const [statusOverrides, setStatusOverrides] = useState<Record<string, Status>>({});
   const [corretorOverrides, setCorretorOverrides] = useState<Record<string, string>>({});
   const [savedAt, setSavedAt] = useState<string | null>(null);
