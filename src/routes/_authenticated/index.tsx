@@ -1362,7 +1362,7 @@ function Index() {
 
 
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <DialogContent className="max-h-[92vh] w-[calc(100vw-1.5rem)] max-w-[calc(100vw-1.5rem)] overflow-y-auto p-4 sm:max-w-2xl sm:p-6">
+        <DialogContent className="max-h-[92vh] w-[calc(100vw-1.5rem)] max-w-[calc(100vw-1.5rem)] overflow-y-auto p-4 sm:max-w-3xl sm:p-6 lg:max-w-5xl xl:max-w-6xl">
           {selected && currentSale && (() => {
             const live = lotes.find((l) => l.id === selected.id) ?? selected;
             const preco = live.preco;
