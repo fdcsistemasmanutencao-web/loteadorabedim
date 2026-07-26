@@ -325,6 +325,7 @@ function Index() {
   const [statusOverrides, setStatusOverrides] = useState<Record<string, Status>>({});
   const [corretorOverrides, setCorretorOverrides] = useState<Record<string, string>>({});
   const [quadraOverrides, setQuadraOverrides] = useState<Record<string, string>>({});
+  const [quadraLabels, setQuadraLabels] = useState<Record<string, string>>({});
   const [dragLoteId, setDragLoteId] = useState<string | null>(null);
   const [dragOverQuadra, setDragOverQuadra] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
