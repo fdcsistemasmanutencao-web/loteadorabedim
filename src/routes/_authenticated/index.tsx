@@ -243,6 +243,7 @@ type PersistedConfig = {
   statusOverrides: Record<string, Status>;
   corretorOverrides: Record<string, string>;
   quadraOverrides: Record<string, string>;
+  quadraLabels?: Record<string, string>;
   sales: Record<string, Sale>;
   deletedIds: string[];
 };
