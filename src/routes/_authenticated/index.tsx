@@ -2013,8 +2013,23 @@ function Index() {
             {Object.keys(quadras).map((q) => {
               const val = quadraSizes[q];
               return (
-                <div key={q} className="flex items-center gap-3">
+                <div key={q} className="flex flex-wrap items-center gap-2 sm:gap-3">
                   <span className="w-16 text-sm font-medium">Quadra {q}</span>
+                  <Input
+                    type="text"
+                    value={quadraLabels[q] ?? ""}
+                    placeholder={`Nome (ex: ${q})`}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      setQuadraLabels((prev) => {
+                        const next = { ...prev };
+                        if (!raw.trim()) delete next[q];
+                        else next[q] = raw;
+                        return next;
+                      });
+                    }}
+                    className="h-8 w-36"
+                  />
                   <Input
                     type="number"
                     min={1}
