@@ -437,6 +437,7 @@ function Index() {
     setStatusOverrides(cfg.statusOverrides ?? {});
     setCorretorOverrides(cfg.corretorOverrides ?? {});
     setQuadraOverrides(cfg.quadraOverrides ?? {});
+    setQuadraLabels(cfg.quadraLabels ?? {});
     setSales(cfg.sales ?? {});
     setSavedAt(null);
   };
