@@ -1386,7 +1386,7 @@ function Index() {
                   </div>
 
                   <DialogDescription>
-                    Quadra {selected.quadra} · Lote {numeroOverrides[selected.id] ?? selected.numero} · {selected.area} m² · Valor {brl(preco)}
+                    Quadra {quadraLabels[selected.quadra]?.trim() || selected.quadra} · Lote {numeroOverrides[selected.id] ?? selected.numero} · {selected.area} m² · Valor {brl(preco)}
                   </DialogDescription>
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <Label htmlFor="numeroLoteTop" className="whitespace-nowrap text-xs text-muted-foreground">
