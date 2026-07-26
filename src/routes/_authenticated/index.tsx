@@ -243,6 +243,7 @@ type PersistedConfig = {
   statusOverrides: Record<string, Status>;
   corretorOverrides: Record<string, string>;
   quadraOverrides: Record<string, string>;
+  quadraLabels?: Record<string, string>;
   sales: Record<string, Sale>;
   deletedIds: string[];
 };
@@ -324,6 +325,7 @@ function Index() {
   const [statusOverrides, setStatusOverrides] = useState<Record<string, Status>>({});
   const [corretorOverrides, setCorretorOverrides] = useState<Record<string, string>>({});
   const [quadraOverrides, setQuadraOverrides] = useState<Record<string, string>>({});
+  const [quadraLabels, setQuadraLabels] = useState<Record<string, string>>({});
   const [dragLoteId, setDragLoteId] = useState<string | null>(null);
   const [dragOverQuadra, setDragOverQuadra] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
@@ -435,6 +437,7 @@ function Index() {
     setStatusOverrides(cfg.statusOverrides ?? {});
     setCorretorOverrides(cfg.corretorOverrides ?? {});
     setQuadraOverrides(cfg.quadraOverrides ?? {});
+    setQuadraLabels(cfg.quadraLabels ?? {});
     setSales(cfg.sales ?? {});
     setSavedAt(null);
   };
@@ -450,7 +453,7 @@ function Index() {
 
   const persistConfigFor = (id: string) => {
     if (!id) return;
-    const payload: PersistedConfig = { empreendimento, total, perQuadra, quadraSizes, precoOverrides, nomeOverrides, numeroOverrides, statusOverrides, corretorOverrides, quadraOverrides, sales, deletedIds: Array.from(deletedIds) };
+    const payload: PersistedConfig = { empreendimento, total, perQuadra, quadraSizes, precoOverrides, nomeOverrides, numeroOverrides, statusOverrides, corretorOverrides, quadraOverrides, quadraLabels, sales, deletedIds: Array.from(deletedIds) };
     window.localStorage.setItem(configKey(id), JSON.stringify(payload));
 
   };
@@ -1306,7 +1309,7 @@ function Index() {
             >
               <div className="mb-4 flex items-center justify-between gap-2">
                 <h2 className="truncate text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                  Quadra {q}
+                  Quadra {quadraLabels[q]?.trim() || q}
                 </h2>
                 <span className="shrink-0 text-xs text-muted-foreground">{lotes.length} lotes</span>
               </div>
@@ -1383,7 +1386,7 @@ function Index() {
                   </div>
 
                   <DialogDescription>
-                    Quadra {selected.quadra} · Lote {numeroOverrides[selected.id] ?? selected.numero} · {selected.area} m² · Valor {brl(preco)}
+                    Quadra {quadraLabels[selected.quadra]?.trim() || selected.quadra} · Lote {numeroOverrides[selected.id] ?? selected.numero} · {selected.area} m² · Valor {brl(preco)}
                   </DialogDescription>
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <Label htmlFor="numeroLoteTop" className="whitespace-nowrap text-xs text-muted-foreground">
@@ -2010,8 +2013,23 @@ function Index() {
             {Object.keys(quadras).map((q) => {
               const val = quadraSizes[q];
               return (
-                <div key={q} className="flex items-center gap-3">
+                <div key={q} className="flex flex-wrap items-center gap-2 sm:gap-3">
                   <span className="w-16 text-sm font-medium">Quadra {q}</span>
+                  <Input
+                    type="text"
+                    value={quadraLabels[q] ?? ""}
+                    placeholder={`Nome (ex: ${q})`}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      setQuadraLabels((prev) => {
+                        const next = { ...prev };
+                        if (!raw.trim()) delete next[q];
+                        else next[q] = raw;
+                        return next;
+                      });
+                    }}
+                    className="h-8 w-36"
+                  />
                   <Input
                     type="number"
                     min={1}
